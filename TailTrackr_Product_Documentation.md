@@ -1,13 +1,13 @@
-# TailTrackr — Product, UX, and Engineering Documentation
+# PawsHub — Product, UX, and Engineering Documentation
 
 ## 1. Product Overview
 
-**Product name:** TailTrackr  
+**Product name:** PawsHub  
 **Platform:** Mobile app  
 **Stack:** Expo, React Native, NativeWind, Gluestack UI  
 **Primary users:** Pet parents, adopters, rescue volunteers, foster caregivers, and veterinary discovery users
 
-TailTrackr is a mobile-first pet care platform that combines **pet health tracking**, **nearby vet discovery**, **adoption workflows**, and a **pet community** into one app.
+PawsHub is a mobile-first pet care platform that combines **pet health tracking**, **nearby vet discovery**, **adoption workflows**, and a **pet community** into one app.
 
 The core idea is simple:
 
@@ -19,7 +19,7 @@ Most pet apps solve only one part of the journey:
 - adoption apps list pets
 - social apps create community
 
-TailTrackr combines all of these in a single, trustworthy system.
+PawsHub combines all of these in a single, trustworthy system.
 
 ---
 
@@ -27,7 +27,7 @@ TailTrackr combines all of these in a single, trustworthy system.
 
 Build the most useful everyday app for pet parents and future pet parents.
 
-TailTrackr should feel:
+PawsHub should feel:
 - warm
 - trustworthy
 - organized
@@ -47,7 +47,7 @@ The app should reduce anxiety for pet owners by making it easy to:
 ## 3. USP (Unique Selling Proposition)
 
 ### Main USP
-**TailTrackr is an all-in-one pet care and adoption app that helps users track health, discover nearby vets, connect with community, and manage adoption in one place.**
+**PawsHub is an all-in-one pet care and adoption app that helps users track health, discover nearby vets, connect with community, and manage adoption in one place.**
 
 ### Why it stands out
 1. **Health + Community + Adoption + Discovery in one app**
@@ -58,7 +58,7 @@ The app should reduce anxiety for pet owners by making it easy to:
 6. **Adoption workflow**, not just passive listings
 
 ### Positioning statement
-TailTrackr helps pet parents stay on top of care, connect with trusted services, and find or rehome pets responsibly through one simple app.
+PawsHub helps pet parents stay on top of care, connect with trusted services, and find or rehome pets responsibly through one simple app.
 
 ---
 
@@ -290,7 +290,7 @@ Blue-900 communicates:
 - professionalism
 - emotional calm
 
-It fits the product because TailTrackr handles sensitive pet care information and should feel dependable.
+It fits the product because PawsHub handles sensitive pet care information and should feel dependable.
 
 ---
 
@@ -531,7 +531,7 @@ Use for:
 Brand introduction and app loading state.
 
 ### Content
-- TailTrackr logo
+- PawsHub logo
 - subtle paw/pet line art
 - blue-900 background or white background with blue mark
 - loading indicator
@@ -1618,7 +1618,7 @@ A strong MVP proves that users return for care tracking, not just one-time brows
 
 ## 36. Final Product Summary
 
-TailTrackr is a blue-900 themed mobile platform for modern pet care. It helps users manage pet health records, receive reminders, discover nearby veterinary support, connect with other pet owners, and browse or post adoption listings. The app should launch with a polished and scalable design system built on Expo, React Native, NativeWind, and Gluestack, with an MVP focused on retention-driving utility first.
+PawsHub is a blue-900 themed mobile platform for modern pet care. It helps users manage pet health records, receive reminders, discover nearby veterinary support, connect with other pet owners, and browse or post adoption listings. The app should launch with a polished and scalable design system built on Expo, React Native, NativeWind, and Gluestack, with an MVP focused on retention-driving utility first.
 
 ---
 
