@@ -5,6 +5,11 @@ export default (sequelize: any, DataTypes: any) => {
     static associate(models: any) {
       if (models.Pet) User.hasMany(models.Pet, { foreignKey: 'ownerId', as: 'pets' });
       if (models.Post) User.hasMany(models.Post, { foreignKey: 'userId', as: 'posts' });
+      if (models.Reminder) User.hasMany(models.Reminder, { foreignKey: 'userId', as: 'reminders' });
+      if (models.Appointment) {
+        User.hasMany(models.Appointment, { foreignKey: 'ownerId', as: 'ownerAppointments' });
+        User.hasMany(models.Appointment, { foreignKey: 'vetId', as: 'vetAppointments' });
+      }
     }
   }
   
@@ -38,6 +43,26 @@ export default (sequelize: any, DataTypes: any) => {
       isVerified: {
          type: DataTypes.BOOLEAN,
          defaultValue: false,
+      },
+      avatar_url: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
+      phone: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
+      bio: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+      },
+      clinic_name: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
+      license_number: {
+        type: DataTypes.STRING,
+        allowNull: true,
       }
     },
     {

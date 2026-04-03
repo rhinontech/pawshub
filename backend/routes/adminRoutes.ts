@@ -1,17 +1,22 @@
 import express from "express";
-import { getPendingPosts, moderatePost, getUnverifiedVets, verifyVet, getAllPets, getAllUsers } from "../controllers/adminController.ts";
+import { getPendingPosts, moderatePost, getUnverifiedVets, verifyVet, getAllPets, getAllUsers, getAdminStats } from "../controllers/adminController.ts";
 import { protect, adminOnly } from "../middleware/authMiddleware.ts";
 
 const router = express.Router();
 
-router.get("/users", getAllUsers); // Unlocked for dev test
-router.route("/pets")
-  .get(getAllPets); // Unlocked for dev test
+// Stats dashboard
+router.get("/stats", protect, adminOnly, getAdminStats);
 
-router.get("/unverified-vets", getUnverifiedVets); // Unlocked for dev test
-router.patch("/verify-vet/:vetId", protect, adminOnly, verifyVet);
+// Users
+router.get("/users", protect, adminOnly, getAllUsers);
+router.get("/pets", protect, adminOnly, getAllPets);
 
-router.get("/pending-posts", getPendingPosts); // Unlocked for dev test
+// Vet verification (roadmap naming)
+router.get("/vets/pending", protect, adminOnly, getUnverifiedVets);
+router.patch("/vets/:vetId/verify", protect, adminOnly, verifyVet);
+
+// Community moderation
+router.get("/pending-posts", protect, adminOnly, getPendingPosts);
 router.patch("/post-moderation/:postId", protect, adminOnly, moderatePost);
 
 export default router;

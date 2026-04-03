@@ -46,3 +46,19 @@ export const adminOnly = (req: AuthRequest, res: Response, next: NextFunction): 
     res.status(403).json({ message: "Not authorized as an admin" });
   }
 };
+
+export const vetOnly = (req: AuthRequest, res: Response, next: NextFunction): void => {
+  if (req.user && req.user.role === 'veterinarian') {
+    next();
+  } else {
+    res.status(403).json({ message: "Not authorized as a veterinarian" });
+  }
+};
+
+export const ownerOnly = (req: AuthRequest, res: Response, next: NextFunction): void => {
+  if (req.user && req.user.role === 'owner') {
+    next();
+  } else {
+    res.status(403).json({ message: "Not authorized as a pet owner" });
+  }
+};

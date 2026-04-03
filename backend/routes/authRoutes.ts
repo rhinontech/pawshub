@@ -1,20 +1,18 @@
 import express from "express";
-import { registerUser, loginUser } from "../controllers/authController.ts";
+import { registerUser, loginUser, getUserProfile, updateUserProfile, resetPassword } from "../controllers/authController.ts";
 import { protect } from "../middleware/authMiddleware.ts";
 
 const router = express.Router();
 
 router.post("/register", registerUser);
 router.post("/login", loginUser);
+router.post("/reset-password", resetPassword);
 
-// Setup a ping route to test token validation easily
-router.get("/me", protect, (req: any, res) => {
-  res.json({
-    id: req.user.id,
-    name: req.user.name,
-    email: req.user.email,
-    role: req.user.role,
-  });
-});
+router.route("/profile")
+  .get(protect, getUserProfile)
+  .put(protect, updateUserProfile);
+
+// For backwards compatibility with original specification
+router.get("/me", protect, getUserProfile);
 
 export default router;

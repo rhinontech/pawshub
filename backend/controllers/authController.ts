@@ -74,3 +74,83 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// @desc    Get user profile
+// @route   GET /api/auth/me
+export const getUserProfile = async (req: any, res: Response): Promise<void> => {
+  try {
+    const user = await User.findByPk(req.user.id, {
+      attributes: { exclude: ['password'] }
+    });
+
+    if (user) {
+      res.json(user);
+    } else {
+      res.status(404).json({ message: "User not found" });
+    }
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Update user profile
+// @route   PUT /api/auth/profile
+export const updateUserProfile = async (req: any, res: Response): Promise<void> => {
+  try {
+    const user = await User.findByPk(req.user.id);
+
+    if (user) {
+      user.name = req.body.name || user.name;
+      user.email = req.body.email || user.email;
+      user.avatar_url = req.body.avatar_url || user.avatar_url;
+      user.phone = req.body.phone || user.phone;
+      user.bio = req.body.bio || user.bio;
+      user.clinic_name = req.body.clinic_name || user.clinic_name;
+      user.license_number = req.body.license_number || user.license_number;
+
+      if (req.body.password) {
+        const salt = await bcrypt.genSalt(10);
+        user.password = await bcrypt.hash(req.body.password, salt);
+      }
+
+      await user.save();
+
+      res.json({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        isVerified: user.isVerified,
+        avatar_url: user.avatar_url,
+        phone: user.phone,
+        bio: user.bio,
+        clinic_name: user.clinic_name,
+        license_number: user.license_number,
+        token: generateToken(user.id, user.role),
+      });
+    } else {
+      res.status(404).json({ message: "User not found" });
+    }
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Trigger password reset (placeholder)
+// @route   POST /api/auth/reset-password
+export const resetPassword = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ where: { email } });
+
+    if (user) {
+      // Logic to generate reset token and send email would go here.
+      // For now, we simulate success.
+      res.json({ message: "Password reset link sent to your email" });
+    } else {
+      res.status(404).json({ message: "User not found" });
+    }
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};

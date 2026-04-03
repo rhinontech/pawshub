@@ -4,6 +4,12 @@ export default (sequelize: any, DataTypes: any) => {
   class Pet extends Model {
     static associate(models: any) {
       if (models.User) Pet.belongsTo(models.User, { foreignKey: 'ownerId', as: 'owner' });
+      if (models.Appointment) Pet.hasMany(models.Appointment, { foreignKey: 'petId', as: 'appointments' });
+      if (models.Vital) Pet.hasMany(models.Vital, { foreignKey: 'petId', as: 'vitals' });
+      if (models.Vaccine) Pet.hasMany(models.Vaccine, { foreignKey: 'petId', as: 'vaccines' });
+      if (models.Medication) Pet.hasMany(models.Medication, { foreignKey: 'petId', as: 'medications' });
+      if (models.MedicalRecord) Pet.hasMany(models.MedicalRecord, { foreignKey: 'petId', as: 'medicalRecords' });
+      if (models.Reminder) Pet.hasMany(models.Reminder, { foreignKey: 'petId', as: 'reminders' });
     }
   }
   
@@ -49,6 +55,22 @@ export default (sequelize: any, DataTypes: any) => {
       healthStatus: {
         type: DataTypes.STRING, // Using string since ENUM isn't easily supported across all DB types without strict schema sync
         defaultValue: 'Healthy', 
+      },
+      birth_date: {
+        type: DataTypes.DATEONLY,
+        allowNull: true,
+      },
+      gender: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
+      microchip_id: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
+      avatar_url: {
+        type: DataTypes.STRING,
+        allowNull: true,
       }
     },
     {

@@ -4,6 +4,8 @@ export default (sequelize: any, DataTypes: any) => {
   class Post extends Model {
     static associate(models: any) {
       if (models.User) Post.belongsTo(models.User, { foreignKey: 'userId', as: 'author' });
+      if (models.Comment) Post.hasMany(models.Comment, { foreignKey: 'postId', as: 'comments' });
+      if (models.Like) Post.hasMany(models.Like, { foreignKey: 'postId', as: 'likes' });
     }
   }
   

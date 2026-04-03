@@ -104,3 +104,31 @@ export const getAllUsers = async (req: Request, res: Response): Promise<void> =>
     res.status(500).json({ message: error.message });
   }
 };
+
+// @desc    Get platform stats overview
+// @route   GET /api/admin/stats
+export const getAdminStats = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { Appointment } = db as any;
+
+    const [totalUsers, totalPets, totalPosts, pendingPosts, pendingVets, totalAppointments] = await Promise.all([
+      User.count(),
+      Pet.count(),
+      Post.count({ where: { status: 'approved' } }),
+      Post.count({ where: { status: 'pending' } }),
+      User.count({ where: { role: 'veterinarian', isVerified: false } }),
+      Appointment ? Appointment.count() : Promise.resolve(0),
+    ]);
+
+    res.json({
+      totalUsers,
+      totalPets,
+      totalPosts,
+      pendingPosts,
+      pendingVets,
+      totalAppointments,
+    });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};

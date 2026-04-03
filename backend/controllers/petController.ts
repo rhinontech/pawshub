@@ -20,7 +20,7 @@ export const getMyPets = async (req: any, res: Response): Promise<void> => {
 // @route   POST /api/pets
 export const createPet = async (req: any, res: Response): Promise<void> => {
   try {
-    const { name, species, breed, age, weight, city } = req.body;
+    const { name, species, breed, age, weight, city, birth_date, gender, microchip_id, avatar_url, healthStatus } = req.body;
 
     const pet = await Pet.create({
       ownerId: req.user.id,
@@ -30,6 +30,11 @@ export const createPet = async (req: any, res: Response): Promise<void> => {
       age,
       weight,
       city,
+      birth_date,
+      gender,
+      microchip_id,
+      avatar_url,
+      healthStatus: healthStatus || 'Healthy'
     });
 
     res.status(201).json(pet);
@@ -56,6 +61,66 @@ export const updateListingStatus = async (req: any, res: Response): Promise<void
     await pet.save();
     
     res.json(pet);
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Get detailed pet view
+// @route   GET /api/pets/:id
+export const getPetById = async (req: any, res: Response): Promise<void> => {
+  try {
+    // Only owner or vet can view detailed records, but for now we enforce owner
+    const pet = await Pet.findOne({ where: { id: req.params.id, ownerId: req.user.id } });
+    if (!pet) {
+      res.status(404).json({ message: 'Pet not found' });
+      return;
+    }
+    res.json(pet);
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Update pet info
+// @route   PUT /api/pets/:id
+export const updatePet = async (req: any, res: Response): Promise<void> => {
+  try {
+    const pet = await Pet.findOne({ where: { id: req.params.id, ownerId: req.user.id } });
+    
+    if (!pet) {
+      res.status(404).json({ message: 'Pet not found' });
+      return;
+    }
+
+    const updatableFields = ['name', 'species', 'breed', 'age', 'weight', 'city', 'birth_date', 'gender', 'microchip_id', 'avatar_url', 'healthStatus'];
+    
+    updatableFields.forEach(field => {
+      if (req.body[field] !== undefined) {
+        pet[field] = req.body[field];
+      }
+    });
+
+    await pet.save();
+    res.json(pet);
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Remove pet
+// @route   DELETE /api/pets/:id
+export const deletePet = async (req: any, res: Response): Promise<void> => {
+  try {
+    const pet = await Pet.findOne({ where: { id: req.params.id, ownerId: req.user.id } });
+    
+    if (!pet) {
+      res.status(404).json({ message: 'Pet not found' });
+      return;
+    }
+
+    await pet.destroy();
+    res.json({ message: 'Pet removed successfully' });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }

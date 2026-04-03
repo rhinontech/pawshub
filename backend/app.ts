@@ -31,6 +31,9 @@ import authRoutes from './routes/authRoutes.ts';
 import petRoutes from './routes/petRoutes.ts';
 import communityRoutes from './routes/communityRoutes.ts';
 import adminRoutes from './routes/adminRoutes.ts';
+import healthRoutes from './routes/healthRoutes.ts';
+import appointmentRoutes from './routes/appointmentRoutes.ts';
+import reminderRoutes from './routes/reminderRoutes.ts';
 
 // Routes
 app.get('/', (req: Request, res: Response) => {
@@ -39,7 +42,11 @@ app.get('/', (req: Request, res: Response) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/pets', petRoutes);
+app.use('/api/health', healthRoutes);
+app.use('/api/appointments', appointmentRoutes);
+app.use('/api/vets', appointmentRoutes); // getVets lives here
 app.use('/api/community', communityRoutes);
+app.use('/api/reminders', reminderRoutes);
 app.use('/api/admin', adminRoutes);
 
 // Test DB Connection and Start Server
