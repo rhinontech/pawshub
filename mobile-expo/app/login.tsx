@@ -1,7 +1,7 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, Pressable, Image, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
-import { Heart, Mail, Lock, ChevronRight, Stethoscope } from "lucide-react-native";
-import { useAuth, MOCK_USERS, MockUser } from "../contexts/AuthContext";
+import { View, Text, TextInput, Pressable, ScrollView, KeyboardAvoidingView, Platform, Alert, ActivityIndicator } from "react-native";
+import { Heart, Mail, Lock, ChevronRight } from "lucide-react-native";
+import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -9,21 +9,28 @@ import { SafeAreaView } from "react-native-safe-area-context";
 export default function LoginScreen() {
   const router = useRouter();
   const { login } = useAuth();
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
+  
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
-    const found = MOCK_USERS.find((u) => u.email.toLowerCase() === email.trim().toLowerCase());
-    if (found) {
-      await login(found);
-    } else {
-      // Default: log in as first pet owner if no match
-      await login(MOCK_USERS[0]);
+    if (!email || !password) {
+      Alert.alert("Error", "Please fill in all fields");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await login(email.trim(), password);
+      // AuthContext handles state & persistence, router automatically handles redirect in layout
+    } catch (error: any) {
+      Alert.alert("Login Failed", error.message || "Invalid credentials");
+    } finally {
+      setLoading(false);
     }
   };
-
-  const quickLogin = async (user: MockUser) => await login(user);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -35,8 +42,8 @@ export default function LoginScreen() {
             <View style={{ width: 72, height: 72, borderRadius: 24, backgroundColor: colors.heroBg, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
               <Heart size={36} color="#fff" fill="#fff" />
             </View>
-            <Text style={{ fontSize: 28, fontWeight: '800', color: colors.textPrimary }}>PawsHub</Text>
-            <Text style={{ fontSize: 15, color: colors.textMuted, marginTop: 6 }}>Your pet health companion</Text>
+            <Text style={{ fontSize: 24, fontWeight: '800', color: colors.textPrimary }}>Welcome Back</Text>
+            <Text style={{ fontSize: 13, color: colors.textMuted, marginTop: 6 }}>Sign in as a Pet Owner or Veterinarian</Text>
           </View>
 
           {/* Login Form */}
@@ -73,10 +80,17 @@ export default function LoginScreen() {
 
             <Pressable
               onPress={handleLogin}
-              style={{ backgroundColor: colors.brand, borderRadius: 14, height: 54, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 16 }}
+              disabled={loading}
+              style={{ backgroundColor: colors.brand, borderRadius: 14, height: 54, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 16, opacity: loading ? 0.7 : 1 }}
             >
-              <Text style={{ fontSize: 16, fontWeight: '700', color: '#fff' }}>Sign In</Text>
-              <ChevronRight size={18} color="#fff" />
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <>
+                  <Text style={{ fontSize: 16, fontWeight: '700', color: '#fff' }}>Sign In</Text>
+                  <ChevronRight size={18} color="#fff" />
+                </>
+              )}
             </Pressable>
 
             <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 4 }}>
@@ -84,40 +98,6 @@ export default function LoginScreen() {
               <Pressable onPress={() => router.push("/signup")}>
                 <Text style={{ fontSize: 14, fontWeight: '700', color: colors.brand }}>Sign Up</Text>
               </Pressable>
-            </View>
-          </View>
-
-          {/* Quick Login Section (Dev) */}
-          <View style={{ borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 24 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
-              <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
-              <Text style={{ fontSize: 12, color: colors.textMuted, paddingHorizontal: 12, fontWeight: '600' }}>⚡ QUICK LOGIN (DEV)</Text>
-              <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
-            </View>
-
-            <View style={{ gap: 10 }}>
-              {MOCK_USERS.map((user) => (
-                <Pressable
-                  key={user.id}
-                  onPress={() => quickLogin(user)}
-                  style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.bgCard, borderWidth: 1, borderColor: colors.border, borderRadius: 14, padding: 14, gap: 14 }}
-                >
-                  <Image source={user.avatar} style={{ width: 44, height: 44, borderRadius: 22 }} resizeMode="cover" />
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 15, fontWeight: '600', color: colors.textPrimary }}>{user.name}</Text>
-                    <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 2 }}>{user.email}</Text>
-                  </View>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: user.role === 'veterinarian' ? colors.infoBg : colors.successBg, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 }}>
-                    {user.role === 'veterinarian'
-                      ? <Stethoscope size={12} color="#0ea5e9" />
-                      : <Heart size={12} color="#10b981" />
-                    }
-                    <Text style={{ fontSize: 11, fontWeight: '700', color: user.role === 'veterinarian' ? '#0ea5e9' : '#10b981' }}>
-                      {user.role === 'veterinarian' ? 'Vet' : 'Pet Owner'}
-                    </Text>
-                  </View>
-                </Pressable>
-              ))}
             </View>
           </View>
 

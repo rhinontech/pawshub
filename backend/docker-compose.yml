@@ -1,17 +1,6 @@
 name: pawshub
 services:
-  db:
-    image: postgres:15-alpine
-    container_name: pawshub-db
-    restart: always
-    ports:
-      - "5444:5432"
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: pawshub_dev
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+
 
   backend:
     build:
@@ -21,19 +10,9 @@ services:
     restart: always
     ports:
       - "5001:5001"
+      - "5000:5000"
     env_file:
       - .env
     volumes:
       - .:/app
       - /app/node_modules
-    depends_on:
-      - db
-    environment:
-      DB_HOST: db
-      DB_PORT: 5432
-      DB_NAME: pawshub_dev
-      DB_USERNAME: postgres
-      DB_PASSWORD: password
-
-volumes:
-  postgres_data:

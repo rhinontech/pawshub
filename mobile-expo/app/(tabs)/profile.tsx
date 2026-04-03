@@ -2,7 +2,7 @@ import React from "react";
 import { View, Text, ScrollView, Image, Pressable, Switch } from "react-native";
 import { Settings, ChevronRight, PawPrint, Bookmark, FileText, Bell, Shield, LogOut, Moon, Sun, Stethoscope } from "lucide-react-native";
 import { useTheme } from "../../contexts/ThemeContext";
-import { useAuth, MOCK_USERS } from "../../contexts/AuthContext";
+import { useAuth } from "../../contexts/AuthContext";
 
 import { useRouter } from "expo-router";
 
@@ -21,9 +21,6 @@ export default function ProfileScreen() {
     { icon: Shield, label: "Privacy & Security", action: () => router.push('/profile/security') },
     { icon: Settings, label: "App Settings", action: () => router.push('/profile/settings') },
   ];
-
-  // Vet accounts available for dev switching
-  const vets = MOCK_USERS.filter((u) => u.role === 'veterinarian');
 
   const avatar = user?.avatar ?? require("../../assets/pet-dog.jpg");
 
@@ -104,23 +101,6 @@ export default function ProfileScreen() {
             })}
           </View>
 
-          {/* Dev: Switch to Vet */}
-          <View style={{ marginBottom: 16 }}>
-            <Text style={{ fontSize: 11, fontWeight: '700', color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>⚡ Dev: Switch to Vet Role</Text>
-            {vets.map((v) => (
-              <Pressable key={v.id} onPress={async () => await login(v)} style={{ backgroundColor: colors.bgCard, borderRadius: 14, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, marginBottom: 8 }}>
-                <Image source={v.avatar} style={{ width: 40, height: 40, borderRadius: 20 }} resizeMode="cover" />
-                <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 14, fontWeight: '600', color: colors.textPrimary }}>{v.name}</Text>
-                  <Text style={{ fontSize: 12, color: colors.textMuted }}>{v.clinic}</Text>
-                </View>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.infoBg, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999 }}>
-                  <Stethoscope size={12} color="#0ea5e9" />
-                  <Text style={{ fontSize: 11, fontWeight: '700', color: '#0ea5e9' }}>Vet</Text>
-                </View>
-              </Pressable>
-            ))}
-          </View>
 
           {/* Sign Out */}
           <Pressable onPress={async () => await logout()} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: 16, backgroundColor: '#fff1f2', borderWidth: 1, borderColor: '#fecdd3' }}>

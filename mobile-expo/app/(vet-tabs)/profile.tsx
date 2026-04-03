@@ -3,7 +3,6 @@ import { View, Text, ScrollView, Image, Pressable, Switch } from "react-native";
 import { ChevronRight, CalendarDays, Users, Star, Clock, LogOut, Moon, Sun, UserCheck } from "lucide-react-native";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useAuth } from "../../contexts/AuthContext";
-import { MOCK_USERS } from "../../contexts/AuthContext";
 
 const vetMenuItems = [
   { icon: CalendarDays, label: "Appointment History" },
@@ -15,10 +14,10 @@ const vetMenuItems = [
 
 export default function VetProfileScreen() {
   const { colors, isDark, toggleTheme } = useTheme();
-  const { user, logout, login } = useAuth();
+  const { user, logout, switchUser } = useAuth();
 
-  // Switch between vet accounts for dev
-  const otherVets = MOCK_USERS.filter((u) => u.role === 'veterinarian' && u.id !== user?.id);
+  // No other vets in production yet
+  const otherVets: any[] = [];
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -31,9 +30,9 @@ export default function VetProfileScreen() {
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
               <Image source={user?.avatar ?? require("../../assets/pet-cat.jpg")} style={{ width: 64, height: 64, borderRadius: 32, borderWidth: 2, borderColor: 'rgba(255,255,255,0.2)' }} resizeMode="cover" />
               <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 18, fontWeight: '700', color: '#fff' }}>{user?.name}</Text>
-                <Text style={{ fontSize: 14, color: colors.heroSub, marginTop: 2 }}>{user?.specialty}</Text>
-                <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', marginTop: 2 }}>{user?.clinic}</Text>
+                <Text style={{ fontSize: 18, fontWeight: '700', color: '#fff' }}>{user?.name || "Dr. Anonymous"}</Text>
+                <Text style={{ fontSize: 14, color: colors.heroSub, marginTop: 2 }}>{user?.role === 'veterinarian' ? "Verified Professional" : "Veterinarian"}</Text>
+                <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', marginTop: 2 }}>PawsHub Partner</Text>
               </View>
             </View>
             <View style={{ flexDirection: 'row', gap: 32, marginTop: 20 }}>
@@ -85,7 +84,7 @@ export default function VetProfileScreen() {
             <View style={{ marginBottom: 16 }}>
               <Text style={{ fontSize: 11, fontWeight: '700', color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>⚡ Dev: Switch Vet Account</Text>
               {otherVets.map((v) => (
-                <Pressable key={v.id} onPress={async () => await login(v)} style={{ backgroundColor: colors.bgCard, borderRadius: 14, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, marginBottom: 8 }}>
+                <Pressable key={v.id} onPress={async () => await switchUser(v)} style={{ backgroundColor: colors.bgCard, borderRadius: 14, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, marginBottom: 8 }}>
                   <Image source={v.avatar} style={{ width: 40, height: 40, borderRadius: 20 }} resizeMode="cover" />
                   <View style={{ flex: 1 }}>
                     <Text style={{ fontSize: 14, fontWeight: '600', color: colors.textPrimary }}>{v.name}</Text>

@@ -1,65 +1,35 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export type UserRole = "pet_owner" | "veterinarian";
+export type UserRole = "owner" | "veterinarian" | "admin" | "shelter";
 
-export interface MockUser {
+export interface User {
   id: string;
   name: string;
   email: string;
   role: UserRole;
-  avatar: any; // require() image
-  // pet owner extras
+  avatar?: any;
+  token?: string;
+  isVerified?: boolean;
   petCount?: number;
   memberSince?: string;
-  // vet extras
+  rating?: number | string;
+  yearsExp?: number | string;
   clinic?: string;
-  specialty?: string;
-  rating?: number;
-  yearsExp?: number;
 }
 
-export const MOCK_USERS: MockUser[] = [
-  {
-    id: "u1",
-    name: "Sarah Johnson",
-    email: "sarah@pawshub.com",
-    role: "pet_owner",
-    avatar: require("../assets/pet-dog.jpg"),
-    petCount: 3,
-    memberSince: "2022",
-  },
-  {
-    id: "v1",
-    name: "Dr. James Wilson",
-    email: "dr.wilson@pawshub.com",
-    role: "veterinarian",
-    avatar: require("../assets/pet-cat.jpg"),
-    clinic: "PawCare Clinic",
-    specialty: "General & Dental",
-    rating: 4.8,
-    yearsExp: 12,
-  },
-  {
-    id: "v2",
-    name: "Dr. Priya Sharma",
-    email: "dr.priya@pawshub.com",
-    role: "veterinarian",
-    avatar: require("../assets/pet-bunny.jpg"),
-    clinic: "Happy Tails Hospital",
-    specialty: "Surgery",
-    rating: 4.6,
-    yearsExp: 8,
-  },
-];
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:5000/api";
 
 interface AuthContextType {
-  user: MockUser | null;
+  user: User | null;
   isLoggedIn: boolean;
   hasCompletedOnboarding: boolean | null;
-  login: (user: MockUser) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
+  register: (name: string, email: string, password: string, role: string) => Promise<void>;
   logout: () => Promise<void>;
   completeOnboarding: () => Promise<void>;
+  isLoading: boolean;
+  switchUser: (user: User) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -67,46 +37,89 @@ const AuthContext = createContext<AuthContextType>({
   isLoggedIn: false,
   hasCompletedOnboarding: null,
   login: async () => {},
+  register: async () => {},
   logout: async () => {},
   completeOnboarding: async () => {},
+  isLoading: true,
+  switchUser: async () => {},
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<MockUser | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState<boolean | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Load state on mount
   useEffect(() => {
     const loadState = async () => {
       try {
-        // Check onboarding
         const completed = await AsyncStorage.getItem('onboarding_completed');
         setHasCompletedOnboarding(completed === 'true');
 
-        // Check auth
-        const userId = await AsyncStorage.getItem('user_id');
-        if (userId) {
-          const found = MOCK_USERS.find(u => u.id === userId);
-          if (found) setUser(found);
+        const savedUser = await AsyncStorage.getItem('user_data');
+        if (savedUser) {
+          setUser(JSON.parse(savedUser));
         }
       } catch (e) {
         console.error("Auth initialization error", e);
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
     loadState();
   }, []);
 
-  const login = async (u: MockUser) => {
-    setUser(u);
-    await AsyncStorage.setItem('user_id', u.id);
+  const login = async (email: string, password: string) => {
+    const response = await fetch(`${API_BASE_URL}/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || "Login failed");
+
+    const userData: User = {
+      id: data.id,
+      name: data.name,
+      email: data.email,
+      role: data.role,
+      token: data.token,
+      isVerified: data.isVerified,
+    };
+
+    setUser(userData);
+    await AsyncStorage.setItem('user_data', JSON.stringify(userData));
+    await AsyncStorage.setItem('user_token', data.token);
+  };
+
+  const register = async (name: string, email: string, password: string, role: string) => {
+    const response = await fetch(`${API_BASE_URL}/auth/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, email, password, role }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || "Registration failed");
+
+    const userData: User = {
+      id: data.id,
+      name: data.name,
+      email: data.email,
+      role: data.role,
+      token: data.token,
+      isVerified: data.isVerified || (data.role === 'veterinarian' ? false : true),
+    };
+
+    setUser(userData);
+    await AsyncStorage.setItem('user_data', JSON.stringify(userData));
+    await AsyncStorage.setItem('user_token', data.token);
   };
 
   const logout = async () => {
     setUser(null);
-    await AsyncStorage.removeItem('user_id');
+    await AsyncStorage.removeItem('user_data');
+    await AsyncStorage.removeItem('user_token');
   };
 
   const completeOnboarding = async () => {
@@ -114,9 +127,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await AsyncStorage.setItem('onboarding_completed', 'true');
   };
 
+  const switchUser = async (userData: User) => {
+    setUser(userData);
+    await AsyncStorage.setItem('user_data', JSON.stringify(userData));
+    if (userData.token) {
+      await AsyncStorage.setItem('user_token', userData.token);
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, isLoggedIn: !!user, hasCompletedOnboarding, login, logout, completeOnboarding }}>
-      {!loading && children}
+    <AuthContext.Provider value={{ 
+      user, 
+      isLoggedIn: !!user, 
+      hasCompletedOnboarding, 
+      login, 
+      register,
+      logout, 
+      completeOnboarding,
+      isLoading,
+      switchUser
+    }}>
+      {!isLoading && children}
     </AuthContext.Provider>
   );
 }

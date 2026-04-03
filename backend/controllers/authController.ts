@@ -1,0 +1,76 @@
+import type { Request, Response } from "express";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import db from "../models/index.ts";
+
+const { User } = db as any;
+
+const generateToken = (id: string, role: string) => {
+  return jwt.sign({ id, role }, process.env.JWT_SECRET || 'fallback_secret', {
+    expiresIn: "30d",
+  });
+};
+
+// @desc    Register a new user
+// @route   POST /api/auth/register
+export const registerUser = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { name, email, password, role } = req.body;
+
+    const userExists = await User.findOne({ where: { email } });
+    if (userExists) {
+      res.status(400).json({ message: "User already exists" });
+      return;
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    const user = await User.create({
+      name,
+      email,
+      password: hashedPassword,
+      role: role || 'owner',
+      isVerified: role === 'veterinarian' ? false : true, 
+    });
+
+    if (user) {
+      res.status(201).json({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        token: generateToken(user.id, user.role),
+      });
+    } else {
+      res.status(400).json({ message: "Invalid user data" });
+    }
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Auth user & get token
+// @route   POST /api/auth/login
+export const loginUser = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { email, password } = req.body;
+
+    const user = await User.findOne({ where: { email } });
+
+    if (user && (await bcrypt.compare(password, user.password))) {
+      res.json({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        isVerified: user.isVerified,
+        token: generateToken(user.id, user.role),
+      });
+    } else {
+      res.status(401).json({ message: "Invalid email or password" });
+    }
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};

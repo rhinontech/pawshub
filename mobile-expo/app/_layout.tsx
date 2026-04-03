@@ -40,17 +40,29 @@ function AppShell() {
     if (hasCompletedOnboarding === null) return;
 
     const inAuthGroup = segments[0] === '(tabs)' || segments[0] === '(vet-tabs)';
+    const inPublicGroup = segments[0] === 'login' || segments[0] === 'signup' || segments[0] === 'onboarding';
     
     if (!hasCompletedOnboarding && segments[0] !== 'onboarding') {
       // Redirect to onboarding if not completed
       router.replace('/onboarding');
-    } else if (hasCompletedOnboarding && !isLoggedIn && segments[0] !== 'login' && segments[0] !== 'signup' && segments[0] !== 'onboarding') {
-      // Redirect to login if not logged in
+    } else if (hasCompletedOnboarding && !isLoggedIn && !inPublicGroup && segments.length > 0) {
+      // Redirect to login if not logged in and trying to access private routes
       router.replace('/login');
-    } else if (isLoggedIn && (segments[0] === 'login' || segments[0] === 'signup' || segments[0] === 'onboarding')) {
-      // Redirect to dashboard if logged in
-      const target = user?.role === 'veterinarian' ? '/(vet-tabs)/dashboard' : '/(tabs)/index';
-      router.replace(target);
+    } else if (isLoggedIn) {
+      const isVet = user?.role === 'veterinarian';
+      
+      // If at root or on public pages, redirect to appropriate dashboard
+      if (!segments[0] || inPublicGroup) {
+        router.replace(isVet ? '/(vet-tabs)/dashboard' : '/(tabs)');
+        return;
+      }
+
+      // Role-based segment protection
+      if (isVet && segments[0] === '(tabs)') {
+        router.replace('/(vet-tabs)/dashboard');
+      } else if (!isVet && segments[0] === '(vet-tabs)') {
+        router.replace('/(tabs)');
+      }
     }
   }, [isLoggedIn, hasCompletedOnboarding, segments, user?.role]);
 

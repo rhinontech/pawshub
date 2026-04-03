@@ -19,7 +19,7 @@ const PORT = process.env.PORT || 5001;
 
 // Middleware
 const corsOptions = {
-    origin: true,
+    origin: "*", // Explicitly allow all for development testing
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
 };
@@ -27,19 +27,33 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 
+import authRoutes from './routes/authRoutes.ts';
+import petRoutes from './routes/petRoutes.ts';
+import communityRoutes from './routes/communityRoutes.ts';
+import adminRoutes from './routes/adminRoutes.ts';
+
 // Routes
 app.get('/', (req: Request, res: Response) => {
     res.send('Hello, pawshub backend is running!');
 });
+
+app.use('/api/auth', authRoutes);
+app.use('/api/pets', petRoutes);
+app.use('/api/community', communityRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Test DB Connection and Start Server
 const startServer = async () => {
     try {
         await sequelize.authenticate();
         console.log('Database connected successfully.');
+        
+        // Auto-create/sync tables based on models - Safe mode (Persistence enabled)
+        await sequelize.sync({ alter: true }); 
+        console.log('Database schema synchronized (Persistent Mode).');
 
-        httpServer.listen(PORT, () => {
-            console.log(`Server is running on http://localhost:${PORT}`);
+        httpServer.listen(Number(PORT), "0.0.0.0", () => {
+            console.log(`🚀 PawsHub API Live on Network -> http://0.0.0.0:${PORT}`);
         });
     } catch (error) {
         console.error('Unable to connect to the database:', error);

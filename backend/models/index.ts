@@ -41,6 +41,13 @@ for (const file of filesInDir) {
   db[model.name] = model;
 }
 
+// 3. Setup associations
+Object.keys(db).forEach((modelName) => {
+  if (db[modelName].associate) {
+    db[modelName].associate(db);
+  }
+});
+
 db.sequelize = sequelize;
 db.Sequelize = Sequelize;
 
