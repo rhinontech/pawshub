@@ -1,0 +1,26 @@
+import { Navbar } from '@/components/Common/Navbar'
+import React from 'react'
+import { Hero } from './Hero/Hero'
+import { Footer } from '@/components/Common/Footer'
+import { Services } from './Services/Services'
+import { FeaturedMarquee } from './Features/FeaturedMarquee'
+import { ValuesGrid } from './Values/ValuesGrid'
+import { Testimonials } from './Testimonials/Testimonials'
+
+const Home = () => {
+  return (
+     <>
+      <Navbar />
+      <main className="flex-1 flex flex-col min-h-screen">
+        <Hero />
+        <Services />
+        <FeaturedMarquee />
+        <ValuesGrid />
+        <Testimonials />
+      </main>
+      <Footer />
+    </>
+  )
+}
+
+export default Home
