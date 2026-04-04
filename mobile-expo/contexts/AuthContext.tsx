@@ -15,8 +15,14 @@ export interface User {
   memberSince?: string;
   rating?: number | string;
   yearsExp?: number | string;
-  clinic?: string;
+  clinic_name?: string;
+  specialty?: string;
+  bio?: string;
+  city?: string;
+  phone?: string;
 }
+
+import { api } from "../services/api";
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:5000/api";
 
@@ -27,6 +33,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string, role: string) => Promise<void>;
   logout: () => Promise<void>;
+  updateProfile: (updatedData: Partial<User>) => Promise<void>;
   completeOnboarding: () => Promise<void>;
   isLoading: boolean;
   switchUser: (user: User) => Promise<void>;
@@ -39,6 +46,7 @@ const AuthContext = createContext<AuthContextType>({
   login: async () => {},
   register: async () => {},
   logout: async () => {},
+  updateProfile: async () => {},
   completeOnboarding: async () => {},
   isLoading: true,
   switchUser: async () => {},
@@ -57,7 +65,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         const savedUser = await AsyncStorage.getItem('user_data');
         if (savedUser) {
-          setUser(JSON.parse(savedUser));
+          const parsedUser = JSON.parse(savedUser);
+          setUser(parsedUser);
+          // Optionally fetch fresh profile data
+          try {
+            const freshProfile = await api.get('/auth/me');
+            const updatedUser = { ...parsedUser, ...freshProfile };
+            setUser(updatedUser);
+            await AsyncStorage.setItem('user_data', JSON.stringify(updatedUser));
+          } catch (err) {
+            console.log("Could not fetch fresh profile", err);
+          }
         }
       } catch (e) {
         console.error("Auth initialization error", e);
@@ -69,14 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string) => {
-    const response = await fetch(`${API_BASE_URL}/auth/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
-
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.message || "Login failed");
+    const data = await api.post('/auth/login', { email, password });
 
     const userData: User = {
       id: data.id,
@@ -85,6 +96,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       role: data.role,
       token: data.token,
       isVerified: data.isVerified,
+      clinic_name: data.clinic_name,
+      specialty: data.specialty,
+      bio: data.bio,
+      city: data.city,
+      phone: data.phone,
+      memberSince: data.memberSince,
+      petCount: data.petCount,
+      rating: data.rating,
+      yearsExp: data.yearsExp,
+      avatar: data.avatar_url,
     };
 
     setUser(userData);
@@ -93,14 +114,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const register = async (name: string, email: string, password: string, role: string) => {
-    const response = await fetch(`${API_BASE_URL}/auth/register`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, password, role }),
-    });
-
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.message || "Registration failed");
+    const data = await api.post('/auth/register', { name, email, password, role });
 
     const userData: User = {
       id: data.id,
@@ -109,11 +123,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       role: data.role,
       token: data.token,
       isVerified: data.isVerified || (data.role === 'veterinarian' ? false : true),
+      clinic_name: data.clinic_name,
+      specialty: data.specialty,
+      bio: data.bio,
+      city: data.city,
+      phone: data.phone,
+      memberSince: data.memberSince,
+      petCount: data.petCount,
+      rating: data.rating,
+      yearsExp: data.yearsExp,
+      avatar: data.avatar_url,
     };
 
     setUser(userData);
     await AsyncStorage.setItem('user_data', JSON.stringify(userData));
     await AsyncStorage.setItem('user_token', data.token);
+  };
+
+  const updateProfile = async (updatedData: Partial<User>) => {
+    const data = await api.put('/auth/profile', updatedData);
+    if (user) {
+      const newUser = { ...user, ...data };
+      setUser(newUser);
+      await AsyncStorage.setItem('user_data', JSON.stringify(newUser));
+    }
   };
 
   const logout = async () => {
@@ -142,7 +175,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       hasCompletedOnboarding, 
       login, 
       register,
-      logout, 
+      logout,
+      updateProfile,
       completeOnboarding,
       isLoading,
       switchUser

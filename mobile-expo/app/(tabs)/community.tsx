@@ -1,47 +1,139 @@
-import React, { useState } from "react";
-import { View, Text, ScrollView, Image, Pressable, TextInput, Modal, KeyboardAvoidingView, Platform, Alert } from "react-native";
-import { Heart, MessageCircle, Share2, Bookmark, Bell, Calendar, Plus, X, ArrowRight, ShieldCheck } from "lucide-react-native";
+import React, { useState, useEffect } from "react";
+import { View, Text, ScrollView, Image, Pressable, TextInput, Modal, KeyboardAvoidingView, Platform, Alert, ActivityIndicator, RefreshControl } from "react-native";
+import { Heart, MessageCircle, Share2, Bookmark, Bell, Calendar, Plus, X, ArrowRight, ShieldCheck, PawPrint } from "lucide-react-native";
 import StatusChip from "../../components/ui/StatusChip";
 import { useTheme } from "../../contexts/ThemeContext";
 import EventCard from "../../components/ui/EventCard";
+import { api } from "../../services/api";
+import { useAuth } from "../../contexts/AuthContext";
 
 const postCategories = ["General", "Health", "Adoption", "Training", "Nutrition", "Lost & Found"];
-
 const categories = ["All", "Events", "Health", "Adoption", "Training", "Nutrition"];
 
-const events = [
-  { id: 1, title: "Puppy Social Mixer", date: "2026-04-15", month: "APR", day: "15", time: "2:00 PM", location: "Central Park", category: "Social" },
-  { id: 2, title: "Vaccination Drive", date: "2026-04-20", month: "APR", day: "20", time: "9:00 AM", location: "Downtown Center", category: "Health" },
-];
+// Remove dummy events
 
-const posts = [
-  // ... existing posts ...
-  { id: 1, user: "Emily R.", avatar: require("../../assets/pet-cat.jpg"), petTag: "Luna", category: "Health", time: "2h ago", text: "Just got Luna's vaccines updated! The vet was amazing and she barely noticed. Highly recommend PawCare Clinic! 🐱💉", image: require("../../assets/pet-cat.jpg"), likes: 24, comments: 5 },
-  { id: 2, user: "Mike T.", avatar: require("../../assets/pet-dog.jpg"), petTag: "Buddy", category: "Training", time: "5h ago", text: "Finally mastered 'shake paw' after 2 weeks of training! Consistency is key. Any tips for 'roll over'? 🐕", likes: 42, comments: 12 },
-  { id: 3, user: "PawsRescue", avatar: require("../../assets/pet-cat.jpg"), petTag: "Adoption", category: "Adoption", time: "1d ago", text: "Meet Whiskers! This gentle 4-year-old tabby is looking for his forever home. Neutered, vaccinated, and great with kids. 🏠❤️", image: require("../../assets/pet-cat.jpg"), likes: 87, comments: 23 },
-];
+function timeAgo(date: string) {
+  const seconds = Math.floor((new Date().getTime() - new Date(date).getTime()) / 1000);
+  let interval = seconds / 31536000;
+  if (interval > 1) return Math.floor(interval) + "y ago";
+  interval = seconds / 2592000;
+  if (interval > 1) return Math.floor(interval) + "mo ago";
+  interval = seconds / 86400;
+  if (interval > 1) return Math.floor(interval) + "d ago";
+  interval = seconds / 3600;
+  if (interval > 1) return Math.floor(interval) + "h ago";
+  interval = seconds / 60;
+  if (interval > 1) return Math.floor(interval) + "m ago";
+  return "just now";
+}
 
 export default function CommunityScreen() {
+  const { user } = useAuth();
+  const { colors } = useTheme();
   const [active, setActive] = useState("All");
+  const [posts, setPosts] = useState<any[]>([]);
+  const [events, setEvents] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [newPostText, setNewPostText] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("General");
   const [hasPendingPost, setHasPendingPost] = useState(false);
-  const { colors } = useTheme();
+  const [submitting, setSubmitting] = useState(false);
 
-  const handlePost = () => {
-    if (!newPostText.trim()) return;
-    setIsModalVisible(false);
-    setHasPendingPost(true);
-    setNewPostText("");
-    // In a real app, this would hit /api/posts with status=pending
+  const fetchFeed = async () => {
+    try {
+      const [feedData, eventsData] = await Promise.all([
+        api.get('/community/feed'),
+        api.get('/community/events')
+      ]);
+      setPosts(feedData || []);
+      
+      const formattedEvents = (eventsData || []).map((e: any) => {
+        const d = new Date(e.date);
+        return {
+          ...e,
+          month: d.toLocaleString('default', { month: 'short' }).toUpperCase(),
+          day: d.getDate().toString()
+        };
+      });
+      setEvents(formattedEvents);
+    } catch (error) {
+      console.error("Error fetching community data", error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   };
 
-  const filtered = active === "All" ? posts : active === "Events" ? [] : posts.filter((p) => p.category === active);
+  useEffect(() => {
+    fetchFeed();
+  }, []);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchFeed();
+  };
+
+  const handlePost = async () => {
+    if (!newPostText.trim()) return;
+    setSubmitting(true);
+    try {
+      await api.post('/community/posts', {
+        content: newPostText,
+        category: selectedCategory,
+      });
+      setIsModalVisible(false);
+      setHasPendingPost(true);
+      setNewPostText("");
+    } catch (error: any) {
+      Alert.alert("Error", error.message || "Failed to submit post");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleLike = async (postId: string) => {
+    try {
+      const res = await api.post(`/community/posts/${postId}/like`);
+      // Optimistically update local state if we want, or just re-fetch or map update
+      setPosts(prev => prev.map(p => {
+        if (p.id === postId) {
+          const isLiked = res.liked;
+          const newLikes = isLiked 
+            ? [...p.likes, { userId: user?.id }] 
+            : p.likes.filter((l: any) => l.userId !== user?.id);
+          return { ...p, likes: newLikes };
+        }
+        return p;
+      }));
+    } catch (error) {
+      console.error("Error toggling like", error);
+    }
+  };
+
+  const isPostLiked = (postLikes: any[]) => {
+    return postLikes.some((l: any) => l.userId === user?.id);
+  };
+
+  const filteredPosts = active === "All" 
+    ? posts 
+    : posts.filter((p) => p.category === active);
+
+  if (loading && !refreshing) {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.bg, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color={colors.brand} />
+      </View>
+    );
+  }
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 100, paddingTop: 16 }}>
+      <ScrollView 
+        contentContainerStyle={{ paddingBottom: 100, paddingTop: 16 }}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.brand} />}
+      >
         <View style={{ paddingHorizontal: 20, paddingBottom: 8 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
             <Text style={{ fontSize: 24, fontWeight: '700', color: colors.textPrimary }}>Community</Text>
@@ -99,30 +191,42 @@ export default function CommunityScreen() {
               <Text style={{ marginTop: 12, color: colors.textMuted, fontSize: 14 }}>No past events found</Text>
             </View>
           )}
-          {filtered.map((post) => (
+          {active !== "Events" && filteredPosts.length === 0 && (
+            <View style={{ paddingVertical: 40, alignItems: 'center', opacity: 0.5 }}>
+              <MessageCircle size={48} color={colors.textMuted} strokeWidth={1} />
+              <Text style={{ marginTop: 12, color: colors.textMuted, fontSize: 14 }}>No posts found for this category</Text>
+            </View>
+          )}
+          {active !== "Events" && filteredPosts.map((post) => (
             <View key={post.id} style={{ backgroundColor: colors.bgCard, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 16 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-                <Image source={post.avatar} style={{ width: 40, height: 40, borderRadius: 20 }} resizeMode="cover" />
+                {post.author?.avatar_url ? (
+                  <Image source={{ uri: post.author.avatar_url }} style={{ width: 40, height: 40, borderRadius: 20 }} resizeMode="cover" />
+                ) : (
+                  <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.bgSubtle, alignItems: 'center', justifyContent: 'center' }}>
+                    <PawPrint size={20} color={colors.brand} />
+                  </View>
+                )}
                 <View style={{ flex: 1 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                    <Text style={{ fontSize: 14, fontWeight: '600', color: colors.textPrimary }}>{post.user}</Text>
-                    <StatusChip label={post.petTag} variant="info" />
+                    <Text style={{ fontSize: 14, fontWeight: '600', color: colors.textPrimary }}>{post.author?.name || 'User'}</Text>
+                    <StatusChip label={post.author?.role?.toUpperCase() || 'MEMBER'} variant="info" />
                   </View>
-                  <Text style={{ fontSize: 12, color: colors.textMuted }}>{post.time}</Text>
+                  <Text style={{ fontSize: 12, color: colors.textMuted }}>{timeAgo(post.createdAt)} · {post.category}</Text>
                 </View>
               </View>
-              <Text style={{ fontSize: 14, color: colors.textPrimary, lineHeight: 20, marginBottom: 12 }}>{post.text}</Text>
-              {post.image && (
-                <Image source={post.image} style={{ width: '100%', height: 176, borderRadius: 12, marginBottom: 12 }} resizeMode="cover" />
+              <Text style={{ fontSize: 14, color: colors.textPrimary, lineHeight: 20, marginBottom: 12 }}>{post.content}</Text>
+              {post.imageUrl && (
+                <Image source={{ uri: post.imageUrl }} style={{ width: '100%', height: 176, borderRadius: 12, marginBottom: 12 }} resizeMode="cover" />
               )}
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 20, paddingTop: 4 }}>
-                <Pressable style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Heart size={18} color={colors.textMuted} />
-                  <Text style={{ fontSize: 12, fontWeight: '500', color: colors.textMuted }}>{post.likes}</Text>
+                <Pressable onPress={() => handleLike(post.id)} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Heart size={18} color={isPostLiked(post.likes) ? "#f43f5e" : colors.textMuted} fill={isPostLiked(post.likes) ? "#f43f5e" : "transparent"} />
+                  <Text style={{ fontSize: 12, fontWeight: '500', color: isPostLiked(post.likes) ? "#f43f5e" : colors.textMuted }}>{post.likes?.length || 0}</Text>
                 </Pressable>
                 <Pressable style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                   <MessageCircle size={18} color={colors.textMuted} />
-                  <Text style={{ fontSize: 12, fontWeight: '500', color: colors.textMuted }}>{post.comments}</Text>
+                  <Text style={{ fontSize: 12, fontWeight: '500', color: colors.textMuted }}>{post.comments?.length || 0}</Text>
                 </Pressable>
                 <Pressable><Share2 size={18} color={colors.textMuted} /></Pressable>
                 <Pressable style={{ marginLeft: 'auto' }}><Bookmark size={18} color={colors.textMuted} /></Pressable>
@@ -154,7 +258,7 @@ export default function CommunityScreen() {
               </Pressable>
             </View>
 
-            <Text style={{ fontSize: 12, fontWeight: '600', color: colors.textMuted, marginBottom: 12, textTransform: 'uppercase' }}>Select Type</Text>
+            <Text style={{ fontSize: 12, fontWeight: '600', color: colors.textMuted, marginBottom: 12, textTransform: 'uppercase' }}>Select Category</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 24, marginHorizontal: -24 }} contentContainerStyle={{ paddingHorizontal: 24, gap: 8 }}>
               {postCategories.map((cat) => (
                 <Pressable
@@ -173,15 +277,22 @@ export default function CommunityScreen() {
               multiline
               value={newPostText}
               onChangeText={setNewPostText}
-              style={{ flex: 1, fontSize: 16, color: colors.textPrimary, textAlignVertical: 'top', minHeight: 120, padding: 16, backgroundColor: colors.bgSubtle, borderRadius: 16, borderWidth: 1, borderColor: colors.border }}
+              style={{ flex: 1, fontSize: 16, color: colors.textPrimary, textAlignVertical: 'top', minHeight: 120, padding: 16, backgroundColor: colors.bgInput || colors.bgSubtle, borderRadius: 16, borderWidth: 1, borderColor: colors.border }}
             />
 
             <Pressable
               onPress={handlePost}
-              style={{ marginTop: 24, backgroundColor: colors.brand, borderRadius: 16, paddingVertical: 16, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8 }}
+              disabled={submitting}
+              style={{ marginTop: 24, backgroundColor: colors.brand, borderRadius: 16, paddingVertical: 16, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8, opacity: submitting ? 0.7 : 1 }}
             >
-              <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>Submit for Verification</Text>
-              <ArrowRight size={18} color="#fff" />
+              {submitting ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <>
+                  <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>Submit for Verification</Text>
+                  <ArrowRight size={18} color="#fff" />
+                </>
+              )}
             </Pressable>
             <Text style={{ textAlign: 'center', marginTop: 12, fontSize: 11, color: colors.textMuted }}>Your post will be reviewed by our moderation team before appearing in the feed.</Text>
           </View>
