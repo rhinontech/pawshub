@@ -97,7 +97,7 @@ export function Hero() {
           axis="rotate"
           startVal={10}
           endVal={40}
-          className="absolute top-[75%] left-[15%] w-20 h-20 text-primary/70"
+          className="absolute top-[75%] max-md:top-[24%] max-md:left-[5%] left-[15%] w-20 h-20 text-primary/70"
         >
           <PawPrint className="w-full h-full" />
         </BouncingElement>
@@ -105,7 +105,7 @@ export function Hero() {
           axis="rotate"
           startVal={0}
           endVal={-30}
-          className="absolute top-[60%] left-[20%] w-10 h-10 text-primary/70"
+          className="absolute top-[60%] max-md:top-[63%] max-md:left-[10%] left-[20%] w-10 h-10 text-primary/70"
         >
           <PawPrint className="w-full h-full" />
         </BouncingElement>
@@ -113,7 +113,7 @@ export function Hero() {
           axis="rotate"
           startVal={10}
           endVal={40}
-          className="absolute top-[62%] right-[18%] w-20 h-20 text-primary/70"
+          className="absolute top-[62%] max-md:top-[75%] max-md:right-[0%] right-[20%] w-20 h-20 text-primary/70"
         >
           <PawPrint className="w-full h-full" />
         </BouncingElement>
@@ -121,7 +121,7 @@ export function Hero() {
           axis="rotate"
           startVal={0}
           endVal={-30}
-          className="absolute top-[71%] right-[11%] w-10 h-10 text-primary/70"
+          className="absolute top-[73%] max-md:top-[45%] max-md:right-[11%] right-[13%] w-10 h-10 text-primary/70"
         >
           <PawPrint className="w-full h-full" />
         </BouncingElement>
@@ -143,7 +143,7 @@ export function Hero() {
         </FadeInUp>
 
         <FadeInUp delay={0.2}>
-          <p className="text-lg md:text-[22px] leading-relaxed text-[#666666] max-w-2xl mb-12 mx-auto">
+          <p className="text-lg px-5 md:text-[22px] leading-relaxed text-[#666666] max-w-2xl mb-12 mx-auto">
             Your Trusted Partner in Pet Care, Offering Tailored Services to Ensure the Health, Happiness, and Well-Being of Your Beloved Furry Companions.
           </p>
         </FadeInUp>
@@ -158,14 +158,14 @@ export function Hero() {
       {/* Floating Elements / Pet Images */}
       {/* Cat on Left */}
       <motion.div
-        className="absolute bottom-0 left-0 w-64 h-64 md:w-[600px] md:h-[600px] z-10 pointer-events-none"
+        className="absolute bottom-0 left-0 max-xl:-left-10 max-md:-left-20 w-[600px] h-[600px] max-xl:w-[450px] max-xl:h-[450px] max-lg:w-[350px] max-lg:h-[350px] max-md:w-64 max-md:h-64  z-10 pointer-events-none"
       >
         <Image src="/heroCat.png" alt="Cat" fill className="object-contain object-left drop-shadow-2xl" sizes="(max-width: 768px) 100vw, 33vw" />
       </motion.div>
 
       {/* Dog on Right */}
       <motion.div
-        className="absolute top-1/2 -translate-y-1/2 -right-[23%] w-64 h-64 md:w-[700px] md:h-[700px] z-10 pointer-events-none"
+        className="absolute top-1/2 -translate-y-1/2 max-md:top-[60%] -right-[23%] max-sm:-right-[53%] w-[700px] h-[700px] max-xl:w-[450px] max-xl:h-[450px] max-lg:w-[350px] max-lg:h-[350px] max-md:w-64 max-md:h-64 z-10 pointer-events-none"
       >
         <Image src="/heroDog.png" alt="Dog" fill className="object-contain object-right drop-shadow-2xl" sizes="(max-width: 768px) 100vw, 33vw" />
       </motion.div>

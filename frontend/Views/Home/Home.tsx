@@ -6,6 +6,8 @@ import { Services } from './Services/Services'
 import { FeaturedMarquee } from './Features/FeaturedMarquee'
 import { ValuesGrid } from './Values/ValuesGrid'
 import { Testimonials } from './Testimonials/Testimonials'
+import { Partners } from './Partners/Partners'
+import CTA from './CTA/CTA'
 
 const Home = () => {
   return (
@@ -17,6 +19,8 @@ const Home = () => {
         <FeaturedMarquee />
         <ValuesGrid />
         <Testimonials />
+        <Partners />
+        <CTA />
       </main>
       <Footer />
     </>

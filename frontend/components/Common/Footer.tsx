@@ -7,9 +7,9 @@ import { FadeInUp, StaggerContainer, StaggerItem } from "@/components/AnimationP
 
 export function Footer() {
   return (
-    <footer className="bg-white relative pt-32 pb-4">
+    <footer className="bg-[url('/curveBg.svg')] bg-cover bg-top bg-no-repeat relative pt-32">
       {/* Exact Framer Wavy Divider */}
-      <div className="absolute top-0 left-0 w-full overflow-hidden leading-none transform -translate-y-full">
+      {/* <div className="absolute top-0 left-0 w-full overflow-hidden leading-none transform -translate-y-full">
         <svg
           className="relative block w-full h-[120px]"
           xmlns="http://www.w3.org/2000/svg"
@@ -21,7 +21,7 @@ export function Footer() {
             fill="#FFFFFF"
           ></path>
         </svg>
-      </div>
+      </div> */}
 
       <div className="container mx-auto px-10">
         <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-16 mb-24 max-w-7xl mx-auto">
@@ -107,14 +107,14 @@ export function Footer() {
           </StaggerItem>
         </StaggerContainer>
 
-        <FadeInUp delay={0.4}>
+        {/* <FadeInUp delay={0.4}>
           <div className="pt-8 border-t border-[#EDECED] flex flex-col md:flex-row items-center justify-between gap-4 text-[13px] text-[#666666]">
             <p>© {new Date().getFullYear()} PetPals. All rights reserved.</p>
             <p>
               Designed by <span className="text-[#1A1A1A] font-medium">Peterdraw</span>
             </p>
           </div>
-        </FadeInUp>
+        </FadeInUp> */}
       </div>
     </footer>
   );
