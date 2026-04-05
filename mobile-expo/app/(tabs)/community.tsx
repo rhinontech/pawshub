@@ -266,7 +266,7 @@ export default function CommunityScreen() {
                   </View>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -20 }} contentContainerStyle={{ paddingHorizontal: 20, gap: 14 }}>
                     {events.map((event) => (
-                      <EventCard key={event.id} {...event} onPress={() => router.push("/community/events" as any)} />
+                      <EventCard key={event.id} {...event} onPress={() => router.push(`/community/events/${event.id}` as any)} />
                     ))}
                   </ScrollView>
                 </View>
@@ -301,7 +301,11 @@ export default function CommunityScreen() {
               </View>
             )}
             {activeCategory !== "Events" && filteredPosts.map((post) => (
-              <View key={post.id} style={{ backgroundColor: colors.bgCard, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 16 }}>
+              <Pressable
+                key={post.id}
+                onPress={() => router.push(`/community/posts/${post.id}` as any)}
+                style={{ backgroundColor: colors.bgCard, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 16 }}
+              >
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 12 }}>
                   {post.author?.avatar_url ? (
                     <Image source={{ uri: post.author.avatar_url }} style={{ width: 40, height: 40, borderRadius: 20 }} resizeMode="cover" />
@@ -318,26 +322,28 @@ export default function CommunityScreen() {
                     <Text style={{ fontSize: 12, color: colors.textMuted }}>{timeAgo(post.createdAt)} · {post.category}</Text>
                   </View>
                 </View>
-                <Text style={{ fontSize: 14, color: colors.textPrimary, lineHeight: 20, marginBottom: 12 }}>{post.content}</Text>
+                <Text style={{ fontSize: 14, color: colors.textPrimary, lineHeight: 20, marginBottom: 12 }} numberOfLines={4}>
+                  {post.content}
+                </Text>
                 {post.imageUrl && <Image source={{ uri: post.imageUrl }} style={{ width: "100%", height: 176, borderRadius: 12, marginBottom: 12 }} resizeMode="cover" />}
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 18, paddingTop: 4 }}>
-                  <Pressable onPress={() => handleLike(post.id)} style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <Pressable onPress={(event) => { event.stopPropagation(); handleLike(post.id); }} style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
                     <Heart size={18} color={isPostLiked(post.likes) ? "#f43f5e" : colors.textMuted} fill={isPostLiked(post.likes) ? "#f43f5e" : "transparent"} />
                     <Text style={{ fontSize: 12, fontWeight: "500", color: isPostLiked(post.likes) ? "#f43f5e" : colors.textMuted }}>{post.likes?.length || 0}</Text>
                   </Pressable>
-                  <Pressable onPress={() => openComments(post)} style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <Pressable onPress={(event) => { event.stopPropagation(); openComments(post); }} style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
                     <MessageCircle size={18} color={colors.textMuted} />
                     <Text style={{ fontSize: 12, fontWeight: "500", color: colors.textMuted }}>{post.comments?.length || 0}</Text>
                   </Pressable>
-                  <Pressable onPress={() => handleShare(post)} style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <Pressable onPress={(event) => { event.stopPropagation(); handleShare(post); }} style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
                     <Share2 size={18} color={colors.textMuted} />
                     <Text style={{ fontSize: 12, fontWeight: "500", color: colors.textMuted }}>{post.shareCount || 0}</Text>
                   </Pressable>
-                  <Pressable onPress={() => handleSave(post.id)} style={{ marginLeft: "auto" }}>
+                  <Pressable onPress={(event) => { event.stopPropagation(); handleSave(post.id); }} style={{ marginLeft: "auto" }}>
                     <Bookmark size={18} color={isPostSaved(post.savedBy) ? colors.brand : colors.textMuted} fill={isPostSaved(post.savedBy) ? colors.brand : "transparent"} />
                   </Pressable>
                 </View>
-              </View>
+              </Pressable>
             ))}
           </View>
         ) : (

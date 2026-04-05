@@ -141,6 +141,22 @@ type MockEvent = {
   imageUrl?: string;
   attendees?: string;
   category?: string;
+  description?: string;
+  venue?: string;
+  address?: string;
+  hostId?: string;
+  capacity?: number;
+  attendeeCount?: number;
+  contactEmail?: string;
+};
+
+type MockEventBooking = {
+  id: string;
+  eventId: string;
+  userId: string;
+  createdAt: string;
+  note?: string;
+  status: 'booked';
 };
 
 type MockMessage = {
@@ -172,6 +188,7 @@ type MockDb = {
   appointments: MockAppointment[];
   posts: MockPost[];
   events: MockEvent[];
+  eventBookings: MockEventBooking[];
   conversations: MockConversation[];
 };
 
@@ -405,8 +422,41 @@ const getInitialDb = (): MockDb => ({
     },
   ],
   events: [
-    { id: 'event_1', title: 'Pup Social in the Park', location: 'Mission Dolores Park', date: daysFromNow(5), attendees: '42 going', category: 'Community', imageUrl: 'https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?auto=format&fit=crop&w=800&q=80' },
-    { id: 'event_2', title: 'Low-Cost Vaccine Day', location: 'PawCare Clinic', date: daysFromNow(9), attendees: '18 spots left', category: 'Health', imageUrl: 'https://images.unsplash.com/photo-1581888227599-779811939961?auto=format&fit=crop&w=800&q=80' },
+    {
+      id: 'event_1',
+      title: 'Pup Social in the Park',
+      location: 'Mission Dolores Park',
+      venue: 'Mission Dolores Park - Main Lawn',
+      address: 'Dolores St & 19th St, San Francisco, CA',
+      date: daysFromNow(5),
+      attendees: '42 going',
+      attendeeCount: 42,
+      capacity: 80,
+      category: 'Community',
+      hostId: 'user_shelter_1',
+      contactEmail: 'hello@bayrescue.org',
+      description: 'A relaxed outdoor social for pet parents, adopters, and local rescues. Expect meet-and-greets, trainer tips, photo spots, and community networking.',
+      imageUrl: 'https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?auto=format&fit=crop&w=800&q=80',
+    },
+    {
+      id: 'event_2',
+      title: 'Low-Cost Vaccine Day',
+      location: 'PawCare Clinic',
+      venue: 'PawCare Clinic Community Wing',
+      address: '245 Market Street, San Francisco, CA',
+      date: daysFromNow(9),
+      attendees: '18 spots left',
+      attendeeCount: 22,
+      capacity: 40,
+      category: 'Health',
+      hostId: 'user_vet_1',
+      contactEmail: 'maya.vet@pawshub.app',
+      description: 'A community vaccination drive offering affordable preventive care, quick intake support, and wellness guidance for owners.',
+      imageUrl: 'https://images.unsplash.com/photo-1581888227599-779811939961?auto=format&fit=crop&w=800&q=80',
+    },
+  ],
+  eventBookings: [
+    { id: 'event_booking_1', eventId: 'event_1', userId: 'user_owner_1', createdAt: daysFromNow(-1), status: 'booked', note: 'Looking forward to meeting other pet parents.' },
   ],
   conversations: [
     {
@@ -435,6 +485,18 @@ const ensureDb = async (): Promise<MockDb> => {
       mockDb.allergies = [];
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(mockDb));
     }
+    mockDb.events = (mockDb.events || []).map((event) => ({
+      ...event,
+      venue: event.venue || event.location,
+      address: event.address || event.location,
+      description: event.description || 'Join fellow pet lovers for a community event hosted through PawsHub.',
+      attendeeCount: typeof event.attendeeCount === 'number' ? event.attendeeCount : 0,
+      capacity: typeof event.capacity === 'number' ? event.capacity : 50,
+      contactEmail: event.contactEmail || 'events@pawshub.app',
+    }));
+    mockDb.eventBookings = Array.isArray((mockDb as { eventBookings?: MockEventBooking[] }).eventBookings)
+      ? (mockDb as { eventBookings?: MockEventBooking[] }).eventBookings || []
+      : [];
     mockDb.posts = (mockDb.posts || []).map((post) => ({
       ...post,
       comments: Array.isArray(post.comments)
@@ -527,6 +589,27 @@ const enrichPost = (db: MockDb, post: MockPost) => ({
     author: db.users.find((user) => user.id === comment.userId) || null,
   })),
 });
+
+const enrichEvent = (db: MockDb, event: MockEvent, currentUserId?: string) => {
+  const host = event.hostId ? db.users.find((user) => user.id === event.hostId) || null : null;
+  const bookings = db.eventBookings
+    .filter((booking) => booking.eventId === event.id)
+    .map((booking) => ({
+      ...booking,
+      user: db.users.find((user) => user.id === booking.userId) || null,
+    }));
+
+  return {
+    ...event,
+    host,
+    bookings,
+    attendeeCount: bookings.length || event.attendeeCount || 0,
+    attendees: event.capacity
+      ? `${bookings.length || event.attendeeCount || 0}/${event.capacity} booked`
+      : event.attendees,
+    isBooked: currentUserId ? bookings.some((booking) => booking.userId === currentUserId) : false,
+  };
+};
 
 const enrichConversation = (db: MockDb, conversation: MockConversation, currentUserId: string) => {
   const otherParticipants = conversation.participantIds
@@ -897,8 +980,66 @@ const handleCommunity = async (db: MockDb, endpoint: string, method: HttpMethod,
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }
 
+  const postDetailMatch = endpoint.match(/^\/community\/posts\/([^/]+)$/);
+  if (method === 'GET' && postDetailMatch) {
+    const post = db.posts.find((item) => item.id === postDetailMatch[1]);
+    if (!post) {
+      throw new Error('Post not found');
+    }
+    return enrichPost(db, post);
+  }
+
   if (method === 'GET' && endpoint === '/community/events') {
-    return db.events;
+    return db.events
+      .map((event) => enrichEvent(db, event, currentUser.id))
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  }
+
+  const eventDetailMatch = endpoint.match(/^\/community\/events\/([^/]+)$/);
+  if (method === 'GET' && eventDetailMatch) {
+    const event = db.events.find((item) => item.id === eventDetailMatch[1]);
+    if (!event) {
+      throw new Error('Event not found');
+    }
+    return enrichEvent(db, event, currentUser.id);
+  }
+
+  const eventBookingMatch = endpoint.match(/^\/community\/events\/([^/]+)\/book$/);
+  if (method === 'POST' && eventBookingMatch) {
+    const event = db.events.find((item) => item.id === eventBookingMatch[1]);
+    if (!event) {
+      throw new Error('Event not found');
+    }
+    const alreadyBooked = db.eventBookings.find(
+      (booking) => booking.eventId === event.id && booking.userId === currentUser.id
+    );
+    if (alreadyBooked) {
+      return {
+        booking: {
+          ...alreadyBooked,
+          user: currentUser,
+        },
+        event: enrichEvent(db, event, currentUser.id),
+      };
+    }
+
+    const booking: MockEventBooking = {
+      id: createId('event_booking'),
+      eventId: event.id,
+      userId: currentUser.id,
+      createdAt: new Date().toISOString(),
+      note: typeof payload?.note === 'string' ? payload.note : '',
+      status: 'booked',
+    };
+    db.eventBookings.unshift(booking);
+    await saveDb();
+    return {
+      booking: {
+        ...booking,
+        user: currentUser,
+      },
+      event: enrichEvent(db, event, currentUser.id),
+    };
   }
 
   if (method === 'POST' && endpoint === '/community/posts') {

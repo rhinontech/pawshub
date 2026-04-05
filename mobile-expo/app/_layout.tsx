@@ -9,7 +9,6 @@ import { AuthProvider, useAuth } from '../contexts/AuthContext';
 import React, { useEffect } from 'react';
 import '@/global.css';
 
-import NotificationBanner from '../components/ui/NotificationBanner';
 
 function GlobalHeader() {
   const { colors } = useTheme();
@@ -72,7 +71,6 @@ function AppShell() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.bg }}>
-      {isLoggedIn && <NotificationBanner />}
       {isLoggedIn && <GlobalHeader />}
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
         <Stack.Screen name="onboarding" />
@@ -94,6 +92,8 @@ function AppShell() {
         <Stack.Screen name="appointments/book" />
         <Stack.Screen name="notifications/index" />
         <Stack.Screen name="community/events" />
+        <Stack.Screen name="community/events/[id]" />
+        <Stack.Screen name="community/posts/[id]" />
         <Stack.Screen name="community/chat/[id]" />
         <Stack.Screen name="vets/[id]" />
       </Stack>
