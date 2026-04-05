@@ -75,6 +75,16 @@ type MockRecord = {
   date: string;
 };
 
+type MockAllergy = {
+  id: string;
+  petId: string;
+  allergen: string;
+  severity: string;
+  reaction?: string;
+  notes?: string;
+  diagnosedAt: string;
+};
+
 type MockMedication = {
   id: string;
   petId: string;
@@ -118,7 +128,9 @@ type MockPost = {
   createdAt: string;
   imageUrl?: string;
   likes: Array<{ userId: string }>;
-  comments: Array<{ id: string }>;
+  comments: Array<{ id: string; userId: string; text: string; createdAt: string }>;
+  savedBy: string[];
+  shareCount: number;
 };
 
 type MockEvent = {
@@ -131,17 +143,36 @@ type MockEvent = {
   category?: string;
 };
 
+type MockMessage = {
+  id: string;
+  senderId: string;
+  text: string;
+  createdAt: string;
+  petId?: string;
+};
+
+type MockConversation = {
+  id: string;
+  participantIds: string[];
+  title?: string;
+  petId?: string;
+  messages: MockMessage[];
+  updatedAt: string;
+};
+
 type MockDb = {
   users: MockUser[];
   pets: MockPet[];
   vitals: MockVital[];
   vaccines: MockVaccine[];
   records: MockRecord[];
+  allergies: MockAllergy[];
   medications: MockMedication[];
   reminders: MockReminder[];
   appointments: MockAppointment[];
   posts: MockPost[];
   events: MockEvent[];
+  conversations: MockConversation[];
 };
 
 type AuthResponse = MockUser & {
@@ -303,14 +334,22 @@ const getInitialDb = (): MockDb => ({
     { id: 'vital_2', petId: 'pet_1', type: 'heart rate', value: '92', unit: 'bpm', timestamp: daysFromNow(-3) },
     { id: 'vital_3', petId: 'pet_1', type: 'temperature', value: '101.2', unit: 'F', timestamp: daysFromNow(-6) },
     { id: 'vital_4', petId: 'pet_2', type: 'weight', value: '5', unit: 'kg', timestamp: daysFromNow(-5) },
+    { id: 'vital_5', petId: 'pet_1', type: 'respiration', value: '22', unit: 'rpm', timestamp: daysFromNow(-12) },
+    { id: 'vital_6', petId: 'pet_2', type: 'temperature', value: '100.8', unit: 'F', timestamp: daysFromNow(-9) },
   ],
   vaccines: [
     { id: 'vac_1', petId: 'pet_1', name: 'Rabies', status: 'done', lastVaccinationDate: daysFromNow(-30), nextDueDate: daysFromNow(335) },
     { id: 'vac_2', petId: 'pet_2', name: 'FVRCP', status: 'due', lastVaccinationDate: daysFromNow(-370), nextDueDate: daysFromNow(4) },
+    { id: 'vac_3', petId: 'pet_1', name: 'DHPP Booster', status: 'done', lastVaccinationDate: daysFromNow(-180), nextDueDate: daysFromNow(185) },
+    { id: 'vac_4', petId: 'pet_2', name: 'Rabies', status: 'done', lastVaccinationDate: daysFromNow(-120), nextDueDate: daysFromNow(245) },
   ],
   records: [
     { id: 'rec_1', petId: 'pet_1', title: 'Annual Checkup', clinic_name: 'PawCare Clinic', veterinarian_name: 'Dr. Maya Singh', notes: 'Overall healthy.', date: daysFromNow(-14) },
     { id: 'rec_2', petId: 'pet_2', title: 'Dental Evaluation', clinic_name: 'Happy Tails Hospital', veterinarian_name: 'Dr. Ethan Brooks', notes: 'Mild tartar noted.', date: daysFromNow(-45) },
+  ],
+  allergies: [
+    { id: 'allergy_1', petId: 'pet_1', allergen: 'Chicken', severity: 'moderate', reaction: 'Itchy skin and ear irritation', notes: 'Avoid chicken-based treats and kibble.', diagnosedAt: daysFromNow(-180) },
+    { id: 'allergy_2', petId: 'pet_2', allergen: 'Dust mites', severity: 'mild', reaction: 'Sneezing during dry weather', notes: 'Monitor during spring cleaning.', diagnosedAt: daysFromNow(-60) },
   ],
   medications: [
     { id: 'med_1', petId: 'pet_1', name: 'Heartgard', dosage: '1 chew', frequency: 'Monthly', startDate: daysFromNow(-60), endDate: daysFromNow(300), isActive: true },
@@ -327,13 +366,60 @@ const getInitialDb = (): MockDb => ({
     { id: 'appt_3', petId: 'pet_1', ownerId: 'user_owner_1', veterinarianId: 'user_vet_1', date: daysFromNow(-7).slice(0, 10), time: '10:00 AM', reason: 'Weight follow-up', status: 'completed' },
   ],
   posts: [
-    { id: 'post_1', authorId: 'user_owner_1', content: 'Buddy crushed his training session today and finally nailed stay at the park.', category: 'Training', createdAt: daysFromNow(-1), likes: [{ userId: 'user_vet_1' }], comments: [{ id: 'comment_1' }] },
-    { id: 'post_2', authorId: 'user_vet_1', content: 'Reminder for spring: check flea and tick prevention before travel season starts.', category: 'Health', createdAt: daysFromNow(-2), likes: [{ userId: 'user_owner_1' }, { userId: 'user_shelter_1' }], comments: [] },
-    { id: 'post_3', authorId: 'user_shelter_1', content: 'Luna is looking for a calm foster home this month. She loves sunny windows and gentle company.', category: 'Adoption', createdAt: daysFromNow(-3), imageUrl: 'https://images.unsplash.com/photo-1574158622682-e40e69881006?auto=format&fit=crop&w=800&q=80', likes: [], comments: [{ id: 'comment_2' }, { id: 'comment_3' }] },
+    {
+      id: 'post_1',
+      authorId: 'user_owner_1',
+      content: 'Buddy crushed his training session today and finally nailed stay at the park.',
+      category: 'Training',
+      createdAt: daysFromNow(-1),
+      likes: [{ userId: 'user_vet_1' }],
+      comments: [{ id: 'comment_1', userId: 'user_vet_1', text: 'Love this update. Consistency really pays off.', createdAt: daysFromNow(-1) }],
+      savedBy: ['user_owner_1'],
+      shareCount: 1,
+    },
+    {
+      id: 'post_2',
+      authorId: 'user_vet_1',
+      content: 'Reminder for spring: check flea and tick prevention before travel season starts.',
+      category: 'Health',
+      createdAt: daysFromNow(-2),
+      likes: [{ userId: 'user_owner_1' }, { userId: 'user_shelter_1' }],
+      comments: [],
+      savedBy: [],
+      shareCount: 2,
+    },
+    {
+      id: 'post_3',
+      authorId: 'user_shelter_1',
+      content: 'Luna is looking for a calm foster home this month. She loves sunny windows and gentle company.',
+      category: 'Adoption',
+      createdAt: daysFromNow(-3),
+      imageUrl: 'https://images.unsplash.com/photo-1574158622682-e40e69881006?auto=format&fit=crop&w=800&q=80',
+      likes: [],
+      comments: [
+        { id: 'comment_2', userId: 'user_owner_1', text: 'She looks so sweet.', createdAt: daysFromNow(-2) },
+        { id: 'comment_3', userId: 'user_vet_1', text: 'Beautiful photo and a great description.', createdAt: daysFromNow(-2) },
+      ],
+      savedBy: ['user_owner_1', 'user_vet_1'],
+      shareCount: 4,
+    },
   ],
   events: [
     { id: 'event_1', title: 'Pup Social in the Park', location: 'Mission Dolores Park', date: daysFromNow(5), attendees: '42 going', category: 'Community', imageUrl: 'https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?auto=format&fit=crop&w=800&q=80' },
     { id: 'event_2', title: 'Low-Cost Vaccine Day', location: 'PawCare Clinic', date: daysFromNow(9), attendees: '18 spots left', category: 'Health', imageUrl: 'https://images.unsplash.com/photo-1581888227599-779811939961?auto=format&fit=crop&w=800&q=80' },
+  ],
+  conversations: [
+    {
+      id: 'chat_1',
+      participantIds: ['user_owner_1', 'user_shelter_1'],
+      title: 'Luna foster questions',
+      petId: 'pet_3',
+      updatedAt: daysFromNow(-1),
+      messages: [
+        { id: 'msg_1', senderId: 'user_owner_1', text: 'Hi, is Luna still available for foster?', createdAt: daysFromNow(-1), petId: 'pet_3' },
+        { id: 'msg_2', senderId: 'user_shelter_1', text: 'Yes, she is. We would love to tell you more.', createdAt: daysFromNow(-1), petId: 'pet_3' },
+      ],
+    },
   ],
 });
 
@@ -345,6 +431,25 @@ const ensureDb = async (): Promise<MockDb> => {
   const stored = await AsyncStorage.getItem(STORAGE_KEY);
   if (stored) {
     mockDb = JSON.parse(stored) as MockDb;
+    if (!Array.isArray(mockDb.allergies)) {
+      mockDb.allergies = [];
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(mockDb));
+    }
+    mockDb.posts = (mockDb.posts || []).map((post) => ({
+      ...post,
+      comments: Array.isArray(post.comments)
+        ? post.comments.map((comment) => ({
+            id: comment.id,
+            userId: 'userId' in comment ? String((comment as { userId?: string }).userId || 'user_owner_1') : 'user_owner_1',
+            text: 'text' in comment ? String((comment as { text: string }).text || '') : '',
+            createdAt: 'createdAt' in comment ? String((comment as { createdAt: string }).createdAt || new Date().toISOString()) : new Date().toISOString(),
+          }))
+        : [],
+      savedBy: Array.isArray((post as { savedBy?: string[] }).savedBy) ? (post as { savedBy?: string[] }).savedBy || [] : [],
+      shareCount: typeof (post as { shareCount?: number }).shareCount === 'number' ? (post as { shareCount?: number }).shareCount || 0 : 0,
+    }));
+    mockDb.conversations = Array.isArray(mockDb.conversations) ? mockDb.conversations : [];
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(mockDb));
   } else {
     mockDb = getInitialDb();
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(mockDb));
@@ -392,6 +497,7 @@ const enrichPet = (db: MockDb, pet: MockPet) => {
     owner,
     reminderCount: reminders.length,
     Vaccines: db.vaccines.filter((item) => item.petId === pet.id),
+    Allergies: db.allergies.filter((item) => item.petId === pet.id),
     Medications: db.medications.filter((item) => item.petId === pet.id),
     Appointments: appointments.map((appointment) => ({
       ...appointment,
@@ -416,7 +522,33 @@ const enrichAppointment = (db: MockDb, appointment: MockAppointment) => ({
 const enrichPost = (db: MockDb, post: MockPost) => ({
   ...post,
   author: db.users.find((user) => user.id === post.authorId) || null,
+  comments: post.comments.map((comment) => ({
+    ...comment,
+    author: db.users.find((user) => user.id === comment.userId) || null,
+  })),
 });
+
+const enrichConversation = (db: MockDb, conversation: MockConversation, currentUserId: string) => {
+  const otherParticipants = conversation.participantIds
+    .filter((participantId) => participantId !== currentUserId)
+    .map((participantId) => db.users.find((user) => user.id === participantId) || null)
+    .filter(Boolean);
+  const pet = conversation.petId ? db.pets.find((item) => item.id === conversation.petId) || null : null;
+
+  return {
+    ...conversation,
+    participants: conversation.participantIds
+      .map((participantId) => db.users.find((user) => user.id === participantId) || null)
+      .filter(Boolean),
+    otherParticipants,
+    pet,
+    lastMessage: conversation.messages[conversation.messages.length - 1] || null,
+    messages: conversation.messages.map((message) => ({
+      ...message,
+      sender: db.users.find((user) => user.id === message.senderId) || null,
+    })),
+  };
+};
 
 const sanitizeAuthUser = (user: MockUser): AuthResponse => ({
   ...user,
@@ -538,6 +670,7 @@ const handlePets = async (db: MockDb, endpoint: string, method: HttpMethod, body
     db.vitals = db.vitals.filter((item) => item.petId !== petDetailMatch[1]);
     db.vaccines = db.vaccines.filter((item) => item.petId !== petDetailMatch[1]);
     db.records = db.records.filter((item) => item.petId !== petDetailMatch[1]);
+    db.allergies = db.allergies.filter((item) => item.petId !== petDetailMatch[1]);
     db.medications = db.medications.filter((item) => item.petId !== petDetailMatch[1]);
     db.reminders = db.reminders.filter((item) => item.petId !== petDetailMatch[1]);
     db.appointments = db.appointments.filter((item) => item.petId !== petDetailMatch[1]);
@@ -565,7 +698,7 @@ const handlePets = async (db: MockDb, endpoint: string, method: HttpMethod, body
 };
 
 const handleHealth = async (db: MockDb, endpoint: string, method: HttpMethod, body: unknown) => {
-  const resourceMatch = endpoint.match(/^\/health\/(vitals|vaccines|records|meds)\/([^/]+)$/);
+  const resourceMatch = endpoint.match(/^\/health\/(vitals|vaccines|records|allergies|meds)\/([^/]+)$/);
   if (!resourceMatch) {
     return null;
   }
@@ -628,6 +761,28 @@ const handleHealth = async (db: MockDb, endpoint: string, method: HttpMethod, bo
       db.records.unshift(newRecord);
       await saveDb();
       return newRecord;
+    }
+  }
+
+  if (resource === 'allergies') {
+    if (method === 'GET') {
+      return db.allergies
+        .filter((item) => item.petId === petId)
+        .sort((a, b) => new Date(b.diagnosedAt).getTime() - new Date(a.diagnosedAt).getTime());
+    }
+    if (method === 'POST') {
+      const newAllergy: MockAllergy = {
+        id: createId('allergy'),
+        petId,
+        allergen: String(payload?.allergen || 'Unknown allergen'),
+        severity: String(payload?.severity || 'moderate'),
+        reaction: String(payload?.reaction || ''),
+        notes: String(payload?.notes || ''),
+        diagnosedAt: String(payload?.diagnosedAt || new Date().toISOString()),
+      };
+      db.allergies.unshift(newAllergy);
+      await saveDb();
+      return newAllergy;
     }
   }
 
@@ -753,8 +908,11 @@ const handleCommunity = async (db: MockDb, endpoint: string, method: HttpMethod,
       content: String(payload?.content || ''),
       category: String(payload?.category || 'General'),
       createdAt: new Date().toISOString(),
+      imageUrl: payload?.imageUrl ? String(payload.imageUrl) : undefined,
       likes: [],
       comments: [],
+      savedBy: [],
+      shareCount: 0,
     };
     db.posts.unshift(newPost);
     await saveDb();
@@ -776,6 +934,146 @@ const handleCommunity = async (db: MockDb, endpoint: string, method: HttpMethod,
     post.likes.push({ userId: currentUser.id });
     await saveDb();
     return { liked: true };
+  }
+
+  const commentMatch = endpoint.match(/^\/community\/posts\/([^/]+)\/comment$/);
+  if (method === 'POST' && commentMatch) {
+    const post = db.posts.find((item) => item.id === commentMatch[1]);
+    if (!post) {
+      throw new Error('Post not found');
+    }
+    const newComment = {
+      id: createId('comment'),
+      userId: currentUser.id,
+      text: String(payload?.text || '').trim(),
+      createdAt: new Date().toISOString(),
+    };
+    if (!newComment.text) {
+      throw new Error('Comment cannot be empty');
+    }
+    post.comments.push(newComment);
+    await saveDb();
+    return {
+      comment: {
+        ...newComment,
+        author: currentUser,
+      },
+    };
+  }
+
+  const saveMatch = endpoint.match(/^\/community\/posts\/([^/]+)\/save$/);
+  if (method === 'POST' && saveMatch) {
+    const post = db.posts.find((item) => item.id === saveMatch[1]);
+    if (!post) {
+      throw new Error('Post not found');
+    }
+    const isSaved = post.savedBy.includes(currentUser.id);
+    post.savedBy = isSaved
+      ? post.savedBy.filter((userId) => userId !== currentUser.id)
+      : [...post.savedBy, currentUser.id];
+    await saveDb();
+    return { saved: !isSaved };
+  }
+
+  const shareMatch = endpoint.match(/^\/community\/posts\/([^/]+)\/share$/);
+  if (method === 'POST' && shareMatch) {
+    const post = db.posts.find((item) => item.id === shareMatch[1]);
+    if (!post) {
+      throw new Error('Post not found');
+    }
+    post.shareCount += 1;
+    await saveDb();
+    return { shareCount: post.shareCount };
+  }
+
+  if (method === 'GET' && endpoint === '/community/chats') {
+    return db.conversations
+      .filter((conversation) => conversation.participantIds.includes(currentUser.id))
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+      .map((conversation) => enrichConversation(db, conversation, currentUser.id));
+  }
+
+  const conversationMatch = endpoint.match(/^\/community\/chats\/([^/]+)$/);
+  if (method === 'GET' && conversationMatch) {
+    const conversation = db.conversations.find((item) => item.id === conversationMatch[1] && item.participantIds.includes(currentUser.id));
+    if (!conversation) {
+      throw new Error('Conversation not found');
+    }
+    return enrichConversation(db, conversation, currentUser.id);
+  }
+
+  const messageMatch = endpoint.match(/^\/community\/chats\/([^/]+)\/messages$/);
+  if (method === 'POST' && messageMatch) {
+    const conversation = db.conversations.find((item) => item.id === messageMatch[1] && item.participantIds.includes(currentUser.id));
+    if (!conversation) {
+      throw new Error('Conversation not found');
+    }
+    const text = String(payload?.text || '').trim();
+    if (!text) {
+      throw new Error('Message cannot be empty');
+    }
+    const newMessage: MockMessage = {
+      id: createId('msg'),
+      senderId: currentUser.id,
+      text,
+      createdAt: new Date().toISOString(),
+      petId: typeof payload?.petId === 'string' ? payload.petId : conversation.petId,
+    };
+    conversation.messages.push(newMessage);
+    conversation.updatedAt = newMessage.createdAt;
+    await saveDb();
+    return {
+      message: {
+        ...newMessage,
+        sender: currentUser,
+      },
+      conversation: enrichConversation(db, conversation, currentUser.id),
+    };
+  }
+
+  if (method === 'POST' && endpoint === '/community/chats/start') {
+    const recipientId = String(payload?.recipientId || '');
+    const petId = typeof payload?.petId === 'string' ? payload.petId : undefined;
+    const firstMessage = String(payload?.message || '').trim();
+
+    if (!recipientId) {
+      throw new Error('Recipient is required');
+    }
+
+    let conversation = db.conversations.find((item) => {
+      const sameParticipants =
+        item.participantIds.length === 2 &&
+        item.participantIds.includes(currentUser.id) &&
+        item.participantIds.includes(recipientId);
+      const samePet = petId ? item.petId === petId : true;
+      return sameParticipants && samePet;
+    });
+
+    if (!conversation) {
+      conversation = {
+        id: createId('chat'),
+        participantIds: [currentUser.id, recipientId],
+        petId,
+        updatedAt: new Date().toISOString(),
+        messages: [],
+      };
+      db.conversations.unshift(conversation);
+    }
+
+    if (firstMessage) {
+      const newMessage: MockMessage = {
+        id: createId('msg'),
+        senderId: currentUser.id,
+        text: firstMessage,
+        createdAt: new Date().toISOString(),
+        petId,
+      };
+      conversation.messages.push(newMessage);
+      conversation.updatedAt = newMessage.createdAt;
+    }
+
+    await saveDb();
+    return enrichConversation(db, conversation, currentUser.id);
   }
 
   return null;

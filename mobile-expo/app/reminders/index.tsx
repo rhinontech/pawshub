@@ -111,16 +111,16 @@ export default function RemindersScreen() {
               <View style={{ width: 48, height: 48, borderRadius: 14, backgroundColor: bgIcon, alignItems: 'center', justifyContent: 'center' }}>
                 <Icon size={24} color={iconColor} />
               </View>
-              <View style={{ flex: 1, marginLeft: 16 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Text style={{ fontSize: 15, fontWeight: '700', color: colors.textPrimary }}>{r.title}</Text>
-                  <StatusChip label={status.charAt(0).toUpperCase() + status.slice(1)} variant={variant} />
-                </View>
+              <View style={{ flex: 1, minWidth: 0, marginLeft: 16 }}>
+                <Text style={{ fontSize: 15, fontWeight: '700', color: colors.textPrimary }} numberOfLines={2}>{r.title}</Text>
                 <Text style={{ fontSize: 13, color: colors.textMuted, marginTop: 2 }}>
                   {r.pet?.name || 'General'} · Due {r.date ? new Date(r.date).toLocaleDateString() : 'N/A'}
                 </Text>
               </View>
-              <View style={{ width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: colors.textMuted, opacity: 0.3 }} />
+              <View style={{ marginLeft: 12, alignItems: 'flex-end', justifyContent: 'space-between', alignSelf: 'stretch' }}>
+                <StatusChip label={status.charAt(0).toUpperCase() + status.slice(1)} variant={variant} />
+                <View style={{ width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: colors.textMuted, opacity: 0.3, marginTop: 12 }} />
+              </View>
             </Pressable>
           );
         })}

@@ -5,6 +5,12 @@ import { ChevronLeft, Save } from "lucide-react-native";
 import { useTheme } from "../../contexts/ThemeContext";
 import { api } from "../../services/api";
 
+const vaccinePresets = [
+  { name: "Rabies", status: "done", nextDueDate: "2027-04-01" },
+  { name: "DHPP Booster", status: "done", nextDueDate: "2027-01-15" },
+  { name: "Bordetella", status: "due", nextDueDate: "2026-05-10" },
+];
+
 export default function AddVaccineScreen() {
   const router = useRouter();
   const { petId } = useLocalSearchParams();
@@ -50,6 +56,21 @@ export default function AddVaccineScreen() {
       <ScrollView contentContainerStyle={{ padding: 20, gap: 16 }}>
         <View style={{ gap: 8 }}>
           <Text style={{ fontSize: 14, fontWeight: '600', color: colors.textPrimary }}>Vaccine Name</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingBottom: 4 }}>
+            {vaccinePresets.map((preset) => (
+              <Pressable
+                key={preset.name}
+                onPress={() => {
+                  setName(preset.name);
+                  setStatus(preset.status);
+                  setNextDueDate(preset.nextDueDate);
+                }}
+                style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999, backgroundColor: colors.bgSubtle, borderWidth: 1, borderColor: colors.border }}
+              >
+                <Text style={{ fontSize: 12, fontWeight: '600', color: colors.textSecondary }}>{preset.name}</Text>
+              </Pressable>
+            ))}
+          </ScrollView>
           <TextInput
             placeholder="e.g. Rabies, DHPP, Bordetella"
             placeholderTextColor={colors.textMuted}

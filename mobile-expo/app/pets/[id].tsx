@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, ScrollView, Image, Pressable, Switch, ActivityIndicator, Alert, RefreshControl } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { ArrowLeft, Syringe, Pill, Calendar, FileText, ChevronRight, Edit3, Heart, Home, PawPrint } from "lucide-react-native";
+import { ArrowLeft, Syringe, Pill, Calendar, FileText, ChevronRight, Edit3, Heart, Home, PawPrint, ShieldAlert } from "lucide-react-native";
 import StatusChip from "../../components/ui/StatusChip";
 import { useTheme } from "../../contexts/ThemeContext";
 import { api } from "../../services/api";
@@ -143,12 +143,12 @@ export default function PetDetailScreen() {
       <View style={{ paddingHorizontal: 20, marginBottom: 24 }}>
         <Text style={{ fontSize: 18, fontWeight: '600', color: colors.textPrimary, marginBottom: 12 }}>Public Listings</Text>
         <View style={{ backgroundColor: colors.bgCard, borderRadius: 24, borderWidth: 1, borderColor: colors.border, padding: 20, gap: 16 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1, minWidth: 0, paddingRight: 12 }}>
               <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: colors.bgSubtle, alignItems: 'center', justifyContent: 'center' }}>
                 <Heart size={20} color={isAdoptionOpen ? colors.brand : colors.textMuted} fill={isAdoptionOpen ? colors.brand : 'transparent'} />
               </View>
-              <View style={{ flex: 1 }}>
+              <View style={{ flex: 1, minWidth: 0 }}>
                 <Text style={{ fontSize: 14, fontWeight: '700', color: colors.textPrimary }}>Open for Adoption</Text>
                 <Text style={{ fontSize: 11, color: colors.textMuted }}>Make pet profile public for permanent adoption</Text>
               </View>
@@ -163,12 +163,12 @@ export default function PetDetailScreen() {
 
           <View style={{ height: 1, backgroundColor: colors.border }} />
 
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1, minWidth: 0, paddingRight: 12 }}>
               <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: colors.bgSubtle, alignItems: 'center', justifyContent: 'center' }}>
                 <Home size={20} color={isFosterOpen ? colors.brand : colors.textMuted} />
               </View>
-              <View style={{ flex: 1 }}>
+              <View style={{ flex: 1, minWidth: 0 }}>
                 <Text style={{ fontSize: 14, fontWeight: '700', color: colors.textPrimary }}>Open for Foster</Text>
                 <Text style={{ fontSize: 11, color: colors.textMuted }}>Looking for temporary caregivers in your city</Text>
               </View>
@@ -194,7 +194,7 @@ export default function PetDetailScreen() {
         {[
           { icon: Syringe, label: "Vaccines", color: "#10b981", bg: colors.successBg, path: `/health/vaccines?petId=${id}` },
           { icon: Pill, label: "Meds", color: "#0ea5e9", bg: colors.infoBg, path: `/health/meds?petId=${id}` },
-          { icon: Calendar, label: "Visits", color: "#f59e0b", bg: colors.warningBg, path: `/health/records?petId=${id}` },
+          { icon: Heart, label: "Vitals", color: "#ec4899", bg: colors.warningBg, path: `/health/vitals?petId=${id}` },
           { icon: FileText, label: "Records", color: "#8b5cf6", bg: colors.bgSubtle, path: `/health/records?petId=${id}` },
         ].map(({ icon: Icon, label, color, bg, path }) => (
           <Pressable 
@@ -243,6 +243,31 @@ export default function PetDetailScreen() {
                 <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 2 }}>{m.dosage} · {m.frequency}</Text>
               </View>
               <ChevronRight size={18} color={colors.textMuted} />
+            </View>
+          ))}
+        </View>
+      ) : null}
+
+      {/* Allergies */}
+      {pet.Allergies && pet.Allergies.length > 0 ? (
+        <View style={{ paddingHorizontal: 20, marginBottom: 24 }}>
+          <Text style={{ fontSize: 18, fontWeight: '600', color: colors.textPrimary, marginBottom: 12 }}>Known Allergies</Text>
+          {pet.Allergies.map((allergy: any) => (
+            <View key={allergy.id} style={{ backgroundColor: colors.bgCard, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 16, flexDirection: 'row', alignItems: 'flex-start', marginBottom: 12 }}>
+              <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: colors.warningBg, alignItems: 'center', justifyContent: 'center' }}>
+                <ShieldAlert size={18} color="#b45309" />
+              </View>
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: colors.textPrimary, flex: 1 }}>{allergy.allergen}</Text>
+                  <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, backgroundColor: allergy.severity === 'severe' ? '#fee2e2' : allergy.severity === 'mild' ? colors.successBg : colors.warningBg }}>
+                    <Text style={{ fontSize: 11, fontWeight: '700', textTransform: 'capitalize', color: allergy.severity === 'severe' ? '#b91c1c' : allergy.severity === 'mild' ? '#047857' : '#b45309' }}>
+                      {allergy.severity}
+                    </Text>
+                  </View>
+                </View>
+                {!!allergy.reaction && <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 4 }}>{allergy.reaction}</Text>}
+              </View>
             </View>
           ))}
         </View>

@@ -5,6 +5,12 @@ import { ChevronLeft, Save } from "lucide-react-native";
 import { useTheme } from "../../contexts/ThemeContext";
 import { api } from "../../services/api";
 
+const vitalPresets = [
+  { type: "Weight", value: "28", unit: "kg" },
+  { type: "Heart Rate", value: "92", unit: "bpm" },
+  { type: "Temperature", value: "101.2", unit: "F" },
+];
+
 export default function AddVitalScreen() {
   const router = useRouter();
   const { petId } = useLocalSearchParams();
@@ -44,6 +50,21 @@ export default function AddVitalScreen() {
       <ScrollView contentContainerStyle={{ padding: 20, gap: 16 }}>
         <View style={{ gap: 8 }}>
           <Text style={{ fontSize: 14, fontWeight: '600', color: colors.textPrimary }}>Type</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingBottom: 4 }}>
+            {vitalPresets.map((preset) => (
+              <Pressable
+                key={preset.type}
+                onPress={() => {
+                  setType(preset.type);
+                  setValue(preset.value);
+                  setUnit(preset.unit);
+                }}
+                style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999, backgroundColor: colors.bgSubtle, borderWidth: 1, borderColor: colors.border }}
+              >
+                <Text style={{ fontSize: 12, fontWeight: '600', color: colors.textSecondary }}>{preset.type}</Text>
+              </Pressable>
+            ))}
+          </ScrollView>
           <TextInput
             placeholder="e.g. Weight, Heart Rate, Temperature"
             placeholderTextColor={colors.textMuted}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect } from "react";
 import { View, Text, ScrollView, TextInput, Pressable, Image, Modal, ActivityIndicator, RefreshControl, Alert } from "react-native";
 import { Search, Stethoscope, MapPin, Star, ShieldCheck, Phone, Clock, Users, X, Heart, PawPrint } from "lucide-react-native";
 import StatusChip from "../../components/ui/StatusChip";
@@ -51,6 +51,28 @@ export default function DiscoverScreen() {
 
   const closeModal = () => { setSelectedItem(null); setModalType(null); };
 
+  const handlePetInterest = async (pet: any) => {
+    const isFosterOnly = !!pet?.isFosterOpen && !pet?.isAdoptionOpen;
+    const actionLabel = isFosterOnly ? "foster" : "adoption";
+    const owner = pet?.owner;
+    if (!owner?.id) {
+      Alert.alert("Chat unavailable", "This listing does not have an owner attached yet.");
+      return;
+    }
+
+    try {
+      const conversation = await api.post("/community/chats/start", {
+        recipientId: owner.id,
+        petId: pet.id,
+        message: `Hi ${owner.name || ""}, I would love to ask about ${pet?.name || "this pet"} and whether ${actionLabel} is still available.`,
+      });
+      closeModal();
+      router.push(`/community/chat/${conversation.id}` as any);
+    } catch (error: any) {
+      Alert.alert("Chat unavailable", error.message || "Could not start the conversation right now.");
+    }
+  };
+
   const filteredVets = vets.filter(v => (v.clinic_name || v.name || "").toLowerCase().includes(searchQuery.toLowerCase()));
   const filteredShelters = shelters.filter(s => (s.name || "").toLowerCase().includes(searchQuery.toLowerCase()));
   const filteredPets = pets.filter(p => (p.name || "").toLowerCase().includes(searchQuery.toLowerCase()));
@@ -102,24 +124,38 @@ export default function DiscoverScreen() {
               <Text style={{ fontSize: 14, color: colors.brand, fontWeight: '500' }}>View all</Text>
             </View>
             {filteredVets.length === 0 ? <Text style={{ color: colors.textMuted }}>No vets found</Text> : filteredVets.map((vet) => (
-              <Pressable key={vet.id} onPress={() => { setSelectedItem(vet); setModalType("vet"); }} style={{ backgroundColor: colors.bgCard, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 16, flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-                <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: colors.infoBg, alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
-                  {vet.avatar_url ? (
-                    <Image source={{ uri: vet.avatar_url }} style={{ width: 44, height: 44, borderRadius: 12 }} />
-                  ) : (
-                    <Stethoscope size={20} color="#0ea5e9" />
-                  )}
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 14, fontWeight: '600', color: colors.textPrimary }}>{vet.clinic_name || vet.name}</Text>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
-                    <MapPin size={12} color={colors.textMuted} />
-                    <Text style={{ fontSize: 12, color: colors.textMuted, marginLeft: 4, marginRight: 12 }}>{vet.city || 'Nearby'}</Text>
-                    <Star size={12} color="#f59e0b" fill="#f59e0b" />
-                    <Text style={{ fontSize: 12, color: '#f59e0b', fontWeight: '700', marginLeft: 4 }}>{vet.rating || '4.5'}</Text>
+              <Pressable
+                key={vet.id}
+                onPress={() => router.push(`/vets/${vet.id}` as any)}
+                style={{ backgroundColor: colors.bgCard, borderRadius: 20, borderWidth: 1, borderColor: colors.border, padding: 16, marginBottom: 12 }}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <View style={{ width: 52, height: 52, borderRadius: 16, overflow: 'hidden', backgroundColor: colors.infoBg, alignItems: 'center', justifyContent: 'center', marginRight: 14 }}>
+                    {vet.avatar_url ? (
+                      <Image source={{ uri: vet.avatar_url }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                    ) : (
+                      <Stethoscope size={22} color="#0ea5e9" />
+                    )}
+                  </View>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text style={{ fontSize: 15, fontWeight: '700', color: colors.textPrimary }} numberOfLines={1}>
+                      {vet.clinic_name || vet.name}
+                    </Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
+                      <MapPin size={13} color={colors.textMuted} />
+                      <Text style={{ fontSize: 13, color: colors.textMuted, marginLeft: 5, marginRight: 14 }} numberOfLines={1}>
+                        {vet.city || 'Nearby'}
+                      </Text>
+                      <Star size={13} color="#f59e0b" fill="#f59e0b" />
+                      <Text style={{ fontSize: 13, color: '#f59e0b', fontWeight: '700', marginLeft: 5 }}>
+                        {Number(vet.rating || 4.5).toFixed(1)}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={{ backgroundColor: '#e0f2fe', borderRadius: 999, paddingHorizontal: 14, paddingVertical: 8, borderWidth: 1, borderColor: '#bae6fd' }}>
+                    <Text style={{ fontSize: 12, fontWeight: '700', color: '#0369a1' }}>VET</Text>
                   </View>
                 </View>
-                <StatusChip label={vet.role === 'veterinarian' ? 'VET' : vet.role} variant="info" />
               </Pressable>
             ))}
           </View>
@@ -160,7 +196,7 @@ export default function DiscoverScreen() {
                     )}
                   </View>
                   <View style={{ padding: 12 }}>
-                    <Text style={{ fontSize: 14, fontWeight: '600', color: colors.textPrimary }}>{pet.name} <Text style={{ fontWeight: '400', color: colors.textMuted }}>· {pet.species}</Text></Text>
+                    <Text style={{ fontSize: 14, fontWeight: '600', color: colors.textPrimary }}>{pet.name} <Text style={{ fontWeight: '400', color: colors.textMuted }}> - {pet.species}</Text></Text>
                     <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 2 }} numberOfLines={1}>{pet.breed || pet.city}</Text>
                   </View>
                 </Pressable>
@@ -201,8 +237,8 @@ export default function DiscoverScreen() {
       {/* Detail Modal */}
       <Modal visible={!!selectedItem} animationType="slide" transparent onRequestClose={closeModal}>
         <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <View style={{ backgroundColor: colors.bgCard, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, maxHeight: '70%' }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <View style={{ backgroundColor: colors.bgCard, borderTopLeftRadius: 28, borderTopRightRadius: 28, maxHeight: '82%', overflow: 'hidden' }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, paddingTop: 24, paddingBottom: 16 }}>
               <Text style={{ fontSize: 18, fontWeight: '700', color: colors.textPrimary }}>
                 {selectedItem?.name || selectedItem?.clinic_name}
               </Text>
@@ -210,67 +246,104 @@ export default function DiscoverScreen() {
                 <X size={18} color={colors.textPrimary} />
               </Pressable>
             </View>
-            
-            {(selectedItem?.avatar_url || selectedItem?.imageUrl) && (
-              <Image source={{ uri: selectedItem.avatar_url || selectedItem.imageUrl }} style={{ width: '100%', height: 160, borderRadius: 16, marginBottom: 16 }} resizeMode="cover" />
-            )}
-            {modalType === "vet" && selectedItem && (
-              <View>
-                <Text style={{ fontSize: 14, color: colors.textSecondary, marginBottom: 12 }}>{selectedItem.bio || 'Professional veterinarian dedicated to pet wellness.'}</Text>
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-                  <Clock size={16} color={colors.textMuted} />
-                  <Text style={{ fontSize: 14, color: colors.textSecondary, marginLeft: 8 }}>{selectedItem.hours || '8:00 AM - 6:00 PM'}</Text>
-                </View>
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
-                  <Phone size={16} color={colors.textMuted} />
-                  <Text style={{ fontSize: 14, color: colors.textSecondary, marginLeft: 8 }}>{selectedItem.phone || '+1 555-PAWS'}</Text>
-                </View>
-                <View style={{ flexDirection: 'row', gap: 12 }}>
-                  <Pressable 
-                    onPress={() => {
+
+            <ScrollView
+              style={{ flexGrow: 0 }}
+              contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 24 }}
+              showsVerticalScrollIndicator={false}
+            >
+              {(selectedItem?.avatar_url || selectedItem?.imageUrl) && (
+                <Image source={{ uri: selectedItem.avatar_url || selectedItem.imageUrl }} style={{ width: '100%', height: 160, borderRadius: 16, marginBottom: 16 }} resizeMode="cover" />
+              )}
+              {modalType === "vet" && selectedItem && (
+                <View>
+                  <Text style={{ fontSize: 14, color: colors.textSecondary, marginBottom: 12 }}>{selectedItem.bio || 'Professional veterinarian dedicated to pet wellness.'}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                    <Clock size={16} color={colors.textMuted} />
+                    <Text style={{ fontSize: 14, color: colors.textSecondary, marginLeft: 8 }}>{selectedItem.hours || '8:00 AM - 6:00 PM'}</Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+                    <Phone size={16} color={colors.textMuted} />
+                    <Text style={{ fontSize: 14, color: colors.textSecondary, marginLeft: 8 }}>{selectedItem.phone || '+1 555-PAWS'}</Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', gap: 12 }}>
+                    <Pressable
+                      onPress={() => {
                         closeModal();
                         router.push(`/appointments/book?vetId=${selectedItem.id}&vetName=${encodeURIComponent(selectedItem.clinic_name || selectedItem.name)}`);
-                    }}
-                    style={{ flex: 1, backgroundColor: colors.brand, borderRadius: 12, paddingVertical: 14, alignItems: 'center' }}
-                  >
-                    <Text style={{ color: '#fff', fontWeight: '700' }}>Book Now</Text>
-                  </Pressable>
-                  <Pressable style={{ flex: 1, backgroundColor: colors.bgSubtle, borderRadius: 12, paddingVertical: 14, alignItems: 'center' }}>
-                    <Text style={{ color: colors.textPrimary, fontWeight: '700' }}>Contact</Text>
-                  </Pressable>
-                </View>
-              </View>
-            )}
-            {modalType === "pet" && selectedItem && (
-              <View>
-                <Text style={{ fontSize: 14, color: colors.textSecondary, marginBottom: 8 }}>
-                  {selectedItem.breed} · {selectedItem.city}
-                </Text>
-                <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
-                  <View style={{ backgroundColor: colors.bgSubtle, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 }}>
-                    <Text style={{ fontSize: 12, color: colors.textMuted }}>Species: <Text style={{ fontWeight: '600', color: colors.textPrimary }}>{selectedItem.species}</Text></Text>
-                  </View>
-                  <View style={{ backgroundColor: colors.bgSubtle, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 }}>
-                    <Text style={{ fontSize: 12, color: colors.textMuted }}>Age: <Text style={{ fontWeight: '600', color: colors.textPrimary }}>{selectedItem.age}</Text></Text>
+                      }}
+                      style={{ flex: 1, backgroundColor: colors.brand, borderRadius: 12, paddingVertical: 14, alignItems: 'center' }}
+                    >
+                      <Text style={{ color: '#fff', fontWeight: '700' }}>Book Now</Text>
+                    </Pressable>
+                    <Pressable style={{ flex: 1, backgroundColor: colors.bgSubtle, borderRadius: 12, paddingVertical: 14, alignItems: 'center' }}>
+                      <Text style={{ color: colors.textPrimary, fontWeight: '700' }}>Contact</Text>
+                    </Pressable>
                   </View>
                 </View>
-                <Pressable style={{ backgroundColor: colors.brand, borderRadius: 12, paddingVertical: 14, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8 }}>
-                  <Heart size={18} color="#fff" />
-                  <Text style={{ color: '#fff', fontWeight: '700' }}>Adopt {selectedItem.name}</Text>
-                </Pressable>
-              </View>
-            )}
-            {modalType === "shelter" && selectedItem && (
+              )}
+              {modalType === "pet" && selectedItem && (
                 <View>
-                <Text style={{ fontSize: 14, color: colors.textSecondary, marginBottom: 16 }}>{selectedItem.bio || 'Helping pets find their forever families.'}</Text>
-                <Pressable style={{ backgroundColor: colors.brand, borderRadius: 12, paddingVertical: 14, alignItems: 'center' }}>
-                    <Text style={{ color: '#fff', fontWeight: '700' }}>Visit Website</Text>
-                </Pressable>
+                  <Text style={{ fontSize: 14, color: colors.textSecondary, marginBottom: 8 }}>
+                    {(selectedItem.breed || 'Mixed breed') + ' - ' + (selectedItem.city || 'Nearby')}
+                  </Text>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+                    <View style={{ backgroundColor: colors.bgSubtle, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 }}>
+                      <Text style={{ fontSize: 12, color: colors.textMuted }}>Species: <Text style={{ fontWeight: '600', color: colors.textPrimary }}>{selectedItem.species || 'Unknown'}</Text></Text>
+                    </View>
+                    <View style={{ backgroundColor: colors.bgSubtle, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 }}>
+                      <Text style={{ fontSize: 12, color: colors.textMuted }}>Age: <Text style={{ fontWeight: '600', color: colors.textPrimary }}>{selectedItem.age || 'Unknown'}</Text></Text>
+                    </View>
+                    <View style={{ backgroundColor: colors.bgSubtle, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 }}>
+                      <Text style={{ fontSize: 12, color: colors.textMuted }}>Gender: <Text style={{ fontWeight: '600', color: colors.textPrimary }}>{selectedItem.gender || 'Unknown'}</Text></Text>
+                    </View>
+                    <View style={{ backgroundColor: colors.bgSubtle, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 }}>
+                      <Text style={{ fontSize: 12, color: colors.textMuted }}>Weight: <Text style={{ fontWeight: '600', color: colors.textPrimary }}>{selectedItem.weight || '--'}</Text></Text>
+                    </View>
+                  </View>
+                  <View style={{ backgroundColor: colors.bgSubtle, borderRadius: 16, padding: 14, marginBottom: 14 }}>
+                    <Text style={{ fontSize: 13, fontWeight: '700', color: colors.textPrimary, marginBottom: 8 }}>About {selectedItem.name}</Text>
+                    <Text style={{ fontSize: 13, color: colors.textSecondary, lineHeight: 20 }}>
+                      {selectedItem.healthStatus || 'Healthy'} pet looking for {selectedItem.isFosterOpen && !selectedItem.isAdoptionOpen ? 'a temporary foster home' : 'a loving forever home'} in {selectedItem.city || 'your area'}.
+                    </Text>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
+                      {selectedItem.isAdoptionOpen ? <StatusChip label="ADOPTION OPEN" variant="success" /> : null}
+                      {selectedItem.isFosterOpen ? <StatusChip label="FOSTER OPEN" variant="info" /> : null}
+                      {selectedItem.owner?.isVerified ? <StatusChip label="VERIFIED OWNER" variant="success" /> : null}
+                    </View>
+                  </View>
+                  <View style={{ backgroundColor: colors.bgSubtle, borderRadius: 16, padding: 14, marginBottom: 14 }}>
+                    <Text style={{ fontSize: 13, fontWeight: '700', color: colors.textPrimary, marginBottom: 8 }}>Health Snapshot</Text>
+                    <Text style={{ fontSize: 13, color: colors.textSecondary, marginBottom: 4 }}>Status: {selectedItem.healthStatus || 'Healthy'}</Text>
+                    <Text style={{ fontSize: 13, color: colors.textSecondary, marginBottom: 4 }}>Vaccines: {selectedItem.Vaccines?.length || 0} records</Text>
+                    <Text style={{ fontSize: 13, color: colors.textSecondary }}>Appointments: {selectedItem.Appointments?.length || 0} on file</Text>
+                  </View>
+                  <View style={{ backgroundColor: colors.bgSubtle, borderRadius: 16, padding: 14, marginBottom: 16 }}>
+                    <Text style={{ fontSize: 13, fontWeight: '700', color: colors.textPrimary, marginBottom: 8 }}>Posted By</Text>
+                    <Text style={{ fontSize: 13, color: colors.textSecondary }}>{selectedItem.owner?.name || 'Pet owner'}</Text>
+                    <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 4 }}>{selectedItem.city || 'Location not set'}</Text>
+                  </View>
+                  <Pressable onPress={() => handlePetInterest(selectedItem)} style={{ backgroundColor: colors.brand, borderRadius: 12, paddingVertical: 14, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8 }}>
+                    <Heart size={18} color="#fff" />
+                    <Text style={{ color: '#fff', fontWeight: '700' }}>
+                      {selectedItem.isFosterOpen && !selectedItem.isAdoptionOpen ? `Request Foster for ${selectedItem.name}` : `Request Adoption for ${selectedItem.name}`}
+                    </Text>
+                  </Pressable>
                 </View>
-            )}
+              )}
+              {modalType === "shelter" && selectedItem && (
+                <View>
+                  <Text style={{ fontSize: 14, color: colors.textSecondary, marginBottom: 16 }}>{selectedItem.bio || 'Helping pets find their forever families.'}</Text>
+                  <Pressable style={{ backgroundColor: colors.brand, borderRadius: 12, paddingVertical: 14, alignItems: 'center' }}>
+                    <Text style={{ color: '#fff', fontWeight: '700' }}>Visit Website</Text>
+                  </Pressable>
+                </View>
+              )}
+            </ScrollView>
           </View>
         </View>
       </Modal>
     </View>
   );
 }
+

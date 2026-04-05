@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { View, Text, ScrollView, Image, Pressable, Dimensions, FlatList, ActivityIndicator, RefreshControl } from "react-native";
-import { Bell, Syringe, Stethoscope, Calendar, Heart, ChevronRight, PawPrint } from "lucide-react-native";
-import VetCard from "../../components/ui/VetCard";
+import { View, Text, ScrollView, Image, Pressable, Dimensions, FlatList, ActivityIndicator, RefreshControl, Modal, Alert } from "react-native";
+import { Bell, Syringe, Stethoscope, Calendar, Heart, ChevronRight, PawPrint, MapPin, Star } from "lucide-react-native";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useRouter } from "expo-router";
 import { useAuth } from "../../contexts/AuthContext";
@@ -16,8 +15,10 @@ export default function HomeScreen() {
 
   const [pets, setPets] = useState<any[]>([]);
   const [reminders, setReminders] = useState<any[]>([]);
+  const [vets, setVets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [petPickerTarget, setPetPickerTarget] = useState<string | null>(null);
 
   const reminderBgDark: Record<string, string> = {
     warning: "#2d1e00",
@@ -37,12 +38,14 @@ export default function HomeScreen() {
 
   const fetchData = useCallback(async () => {
     try {
-      const [petsRes, remindersRes] = await Promise.all([
+      const [petsRes, remindersRes, vetsRes] = await Promise.all([
         api.get('/pets'),
-        api.get('/reminders')
+        api.get('/reminders'),
+        api.get('/appointments/vets')
       ]);
       setPets(petsRes || []);
       setReminders(remindersRes || []);
+      setVets(vetsRes || []);
     } catch (error) {
       console.error("Error fetching home data:", error);
     } finally {
@@ -58,6 +61,20 @@ export default function HomeScreen() {
   const onRefresh = () => {
     setRefreshing(true);
     fetchData();
+  };
+
+  const navigateWithPet = (routePrefix: string) => {
+    if (pets.length === 0) {
+      Alert.alert("No Pets", "Add a pet first to start logging health data.");
+      return;
+    }
+
+    if (pets.length === 1) {
+      router.push(`${routePrefix}?petId=${pets[0].id}` as any);
+      return;
+    }
+
+    setPetPickerTarget(routePrefix);
   };
 
   const renderPetCard = ({ item }: { item: any }) => (
@@ -81,7 +98,7 @@ export default function HomeScreen() {
           
           <View style={{ flex: 1, marginLeft: 16 }}>
             <Text style={{ fontSize: 18, fontWeight: '700', color: '#fff' }}>{item.name}</Text>
-            <Text style={{ fontSize: 14, color: colors.heroSub, marginTop: 2 }}>{item.breed} · {item.age || 'Age Unknown'}</Text>
+            <Text style={{ fontSize: 14, color: colors.heroSub, marginTop: 2 }}>{item.breed} - {item.age || 'Age Unknown'}</Text>
           </View>
         </View>
         <View style={{ flexDirection: 'row', gap: 24, marginTop: 16 }}>
@@ -175,7 +192,7 @@ export default function HomeScreen() {
                     <Icon size={18} color={color} style={{ marginBottom: 8 }} />
                     <Text style={{ fontSize: 14, fontWeight: '600', color: colors.textPrimary }} numberOfLines={1}>{r.title}</Text>
                     <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 2 }} numberOfLines={1}>
-                      {r.pet?.name ? `${r.pet.name} · ` : ''}{r.date ? new Date(r.date).toLocaleDateString() : 'No date'}
+                      {r.pet?.name ? `${r.pet.name} - ` : ''}{r.date ? new Date(r.date).toLocaleDateString() : 'No date'}
                     </Text>
                   </Pressable>
                 );
@@ -189,7 +206,7 @@ export default function HomeScreen() {
           <Text style={{ fontSize: 18, fontWeight: '600', color: colors.textPrimary, marginBottom: 12 }}>Quick Actions</Text>
           <View style={{ flexDirection: 'row', gap: 12 }}>
             <Pressable
-              onPress={() => router.push("/health/vaccines")}
+              onPress={() => navigateWithPet("/health/add-vaccine")}
               style={{ flex: 1, backgroundColor: colors.successBg, borderRadius: 16, padding: 16, alignItems: 'center', gap: 8 }}
             >
               <Syringe size={22} color="#10b981" />
@@ -203,11 +220,11 @@ export default function HomeScreen() {
               <Text style={{ fontSize: 12, fontWeight: '500', color: '#0ea5e9', textAlign: 'center' }}>Find Vet</Text>
             </Pressable>
             <Pressable
-              onPress={() => router.push("/health/vitals")}
+              onPress={() => navigateWithPet("/health/add-vital")}
               style={{ flex: 1, backgroundColor: isDark ? '#2d0a20' : '#fdf2f8', borderRadius: 16, padding: 16, alignItems: 'center', gap: 8 }}
             >
               <Heart size={22} color="#ec4899" />
-              <Text style={{ fontSize: 12, fontWeight: '500', color: '#ec4899', textAlign: 'center' }}>Vitals</Text>
+              <Text style={{ fontSize: 12, fontWeight: '500', color: '#ec4899', textAlign: 'center' }}>Log Vital</Text>
             </Pressable>
           </View>
         </View>
@@ -220,8 +237,41 @@ export default function HomeScreen() {
               <Text style={{ fontSize: 14, color: colors.brand, fontWeight: '500' }}>View all</Text>
             </Pressable>
           </View>
-          <VetCard name="PawCare Clinic" distance="0.8 km" rating={4.8} onPress={() => router.push("/(tabs)/discover")} />
-          <VetCard name="Happy Tails Hospital" distance="1.2 km" rating={4.6} onPress={() => router.push("/(tabs)/discover")} />
+          {vets.slice(0, 2).map((vet, index) => (
+            <Pressable
+              key={vet.id ?? index}
+              onPress={() => router.push(`/vets/${vet.id}` as any)}
+              style={{ backgroundColor: colors.bgCard, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 16, marginBottom: 12 }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <View style={{ width: 56, height: 56, borderRadius: 16, backgroundColor: colors.infoBg, alignItems: 'center', justifyContent: 'center', marginRight: 14, overflow: 'hidden' }}>
+                  {vet.avatar_url ? (
+                    <Image source={{ uri: vet.avatar_url }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                  ) : (
+                    <Stethoscope size={24} color="#0ea5e9" />
+                  )}
+                </View>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={{ fontSize: 15, fontWeight: '700', color: colors.textPrimary }} numberOfLines={1}>
+                    {vet.clinic_name || vet.name || "Vet Clinic"}
+                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
+                    <MapPin size={13} color={colors.textMuted} />
+                    <Text style={{ fontSize: 13, color: colors.textMuted, marginLeft: 4, marginRight: 12 }} numberOfLines={1}>
+                      {vet.distance || vet.city || "Nearby"}
+                    </Text>
+                    <Star size={13} color="#f59e0b" fill="#f59e0b" />
+                    <Text style={{ fontSize: 13, color: "#f59e0b", fontWeight: '700', marginLeft: 4 }}>
+                      {Number(vet.rating || 4.8).toFixed(1)}
+                    </Text>
+                  </View>
+                </View>
+                <View style={{ backgroundColor: '#e0f2fe', borderRadius: 999, paddingHorizontal: 14, paddingVertical: 8, borderWidth: 1, borderColor: '#bae6fd' }}>
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: '#0369a1' }}>VET</Text>
+                </View>
+              </View>
+            </Pressable>
+          ))}
         </View>
 
         {/* Community Spotlight */}
@@ -235,13 +285,55 @@ export default function HomeScreen() {
               <Image source={require("../../assets/pet-cat.jpg")} style={{ width: 40, height: 40, borderRadius: 20 }} resizeMode="cover" />
               <View>
                 <Text style={{ fontSize: 14, fontWeight: '600', color: colors.textPrimary }}>Luna found her forever home!</Text>
-                <Text style={{ fontSize: 12, color: colors.textMuted }}>Posted by PawsRescue · 2h ago</Text>
+                <Text style={{ fontSize: 12, color: colors.textMuted }}>Posted by PawsRescue - 2h ago</Text>
               </View>
             </View>
             <Text style={{ fontSize: 14, color: colors.textMuted }}>After 3 months at the shelter, Luna was adopted by a wonderful family. 🎉</Text>
           </Pressable>
         </View>
       </ScrollView>
+
+      <Modal visible={!!petPickerTarget} animationType="slide" transparent onRequestClose={() => setPetPickerTarget(null)}>
+        <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.45)' }}>
+          <View style={{ backgroundColor: colors.bgCard, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24 }}>
+            <Text style={{ fontSize: 18, fontWeight: '700', color: colors.textPrimary, marginBottom: 6 }}>Choose a Pet</Text>
+            <Text style={{ fontSize: 13, color: colors.textMuted, marginBottom: 18 }}>Select which pet you want to log health data for.</Text>
+            <View style={{ gap: 10 }}>
+              {pets.map((pet) => (
+                <Pressable
+                  key={pet.id}
+                  onPress={() => {
+                    const target = petPickerTarget;
+                    setPetPickerTarget(null);
+                    if (target) {
+                      router.push(`${target}?petId=${pet.id}` as any);
+                    }
+                  }}
+                  style={{ backgroundColor: colors.bgSubtle, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 14, flexDirection: 'row', alignItems: 'center' }}
+                >
+                  {pet.avatar_url ? (
+                    <Image source={{ uri: pet.avatar_url }} style={{ width: 44, height: 44, borderRadius: 12 }} resizeMode="cover" />
+                  ) : (
+                    <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: colors.bgCard, alignItems: 'center', justifyContent: 'center' }}>
+                      <PawPrint size={20} color={colors.textMuted} />
+                    </View>
+                  )}
+                  <View style={{ flex: 1, marginLeft: 12 }}>
+                    <Text style={{ fontSize: 15, fontWeight: '700', color: colors.textPrimary }}>{pet.name}</Text>
+                    <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 2 }}>{pet.breed} - {pet.age || 'Unknown age'}</Text>
+                  </View>
+                </Pressable>
+              ))}
+            </View>
+            <Pressable
+              onPress={() => setPetPickerTarget(null)}
+              style={{ marginTop: 16, alignItems: 'center', paddingVertical: 12 }}
+            >
+              <Text style={{ fontSize: 14, fontWeight: '600', color: colors.textMuted }}>Cancel</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

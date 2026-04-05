@@ -53,7 +53,10 @@ export default function VaccinesScreen() {
           <ChevronLeft size={20} color={colors.textPrimary} />
         </Pressable>
         <Text style={{ flex: 1, fontSize: 18, fontWeight: '700', color: colors.textPrimary, textAlign: 'center' }}>Vaccinations</Text>
-        <Pressable style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.brand, alignItems: 'center', justifyContent: 'center' }}>
+        <Pressable
+          onPress={() => petId && router.push(`/health/add-vaccine?petId=${petId}` as any)}
+          style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.brand, alignItems: 'center', justifyContent: 'center' }}
+        >
           <Plus size={20} color="#fff" />
         </Pressable>
       </View>
